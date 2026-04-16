@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   CheckCircle2, Circle, BookOpen, Zap, ChevronRight,
   BarChart3, GitBranch, GraduationCap, Clock, Star,
