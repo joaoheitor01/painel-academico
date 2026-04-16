@@ -8,69 +8,75 @@ import {
 
 // ─── SUBJECTS DATA ───────────────────────────────────────────────────────────
 const SUBJECTS = [
-  { id: "ENC-01", name: "Fundamentos da Matemática",              sem: 1,  status: "done",    academicTerm: "2024/1", prereqs: [] },
-  { id: "ENC-02", name: "Algoritmos I",                           sem: 1,  status: "done",    academicTerm: "2024/1", prereqs: [] },
-  { id: "ENC-03", name: "Introdução à Engenharia da Computação",  sem: 1,  status: "done",    academicTerm: "2024/1", prereqs: [] },
-  { id: "ENC-04", name: "Desenho Técnico em Ambiente Computacional", sem: 1, status: "done", academicTerm: "2024/1", prereqs: [] },
-  { id: "ENC-05", name: "Química Geral e Ciência dos Materiais",  sem: 1,  status: "done",    academicTerm: "2024/1", prereqs: [] },
-  { id: "ENC-16", name: "Cálculo Vetorial e Geometria Analítica", sem: 3,  status: "done",    academicTerm: "2024/1", prereqs: ["ENC-07"] },
-  { id: "ENC-27", name: "Economia",                               sem: 4,  status: "done",    academicTerm: "2024/1", prereqs: [] },
+  // 1º Período
+  { id: "ENC-001", name: "Algoritmos I",                                sem: 1, ch: 68, status: "done", prereqs: [] },
+  { id: "ENC-002", name: "Cálculo Vetorial e Geometria Analítica",      sem: 1, ch: 68, status: "done", prereqs: [] },
+  { id: "ENC-003", name: "Desenho Técnico em Ambiente Computacional",   sem: 1, ch: 34, status: "done", prereqs: [] },
+  { id: "ENC-004", name: "Economia",                                    sem: 1, ch: 34, status: "done", prereqs: [] },
+  { id: "ENC-005", name: "Fundamentos da Matemática",                   sem: 1, ch: 68, status: "done", prereqs: [] },
+  { id: "ENC-006", name: "Introdução à Engenharia da Computação",       sem: 1, ch: 34, status: "done", prereqs: [] },
+  { id: "ENC-007", name: "Química Geral e Ciência dos Materiais",       sem: 1, ch: 34, status: "done", prereqs: [] },
 
-  { id: "ENC-09", name: "Física Geral e Experimental I",          sem: 2,  status: "done",    academicTerm: "2024/2", prereqs: ["ENC-01"] },
-  { id: "ENC-25", name: "Arquitetura e Organização de Computadores", sem: 4, status: "done", academicTerm: "2024/2", prereqs: ["ENC-03"] },
-  { id: "ENC-08", name: "Algoritmos II",                          sem: 2,  status: "done",    academicTerm: "2024/2", prereqs: ["ENC-02"] },
-  { id: "ENC-28", name: "Ciências do Ambiente",                   sem: 4,  status: "done",    academicTerm: "2024/2", prereqs: ["ENC-05"] },
-  { id: "ENC-26", name: "Eletrônica Digital",                     sem: 4,  status: "done",    academicTerm: "2024/2", prereqs: ["ENC-09"] },
+  // 2º Período
+  { id: "ENC-008", name: "Álgebra Linear",                              sem: 2, ch: 68, status: "done", prereqs: ["ENC-002"] },
+  { id: "ENC-009", name: "Algoritmos II",                               sem: 2, ch: 68, status: "done", prereqs: ["ENC-001"] },
+  { id: "ENC-010", name: "Arquitetura e Organização de Computadores",   sem: 2, ch: 68, status: "done", prereqs: ["ENC-006"] },
+  { id: "ENC-011", name: "Cálculo Diferencial e Integral I",            sem: 2, ch: 68, status: "done", prereqs: ["ENC-005"] },
+  { id: "ENC-012", name: "Ciências do Ambiente",                        sem: 2, ch: 34, status: "done", prereqs: ["ENC-007"] },
+  { id: "ENC-013", name: "Física Geral e Experimental I",               sem: 2, ch: 68, status: "done", prereqs: ["ENC-005"] },
+  { id: "ENC-014", name: "Metodologia Científica",                      sem: 2, ch: 34, status: "done", prereqs: [] },
 
-  { id: "ENC-06", name: "Metodologia Científica (Refeita)",       sem: 1,  status: "done",    academicTerm: "2025/1", tags: ["Refeita"], prereqs: [] },
-  { id: "ENC-07", name: "Cálculo Diferencial e Integral I (Refeita)", sem: 2, status: "done", academicTerm: "2025/1", tags: ["Refeita"], prereqs: ["ENC-01"] },
-  { id: "ENC-23", name: "Álgebra Linear",                         sem: 4,  status: "done",    academicTerm: "2025/1", prereqs: ["ENC-16"] },
-  { id: "ENC-15", name: "Física Geral e Experimental II",         sem: 3,  status: "done",    academicTerm: "2025/1", prereqs: ["ENC-07","ENC-09"] },
-  { id: "ENC-31", name: "Sistemas Operacionais",                  sem: 5,  status: "done",    academicTerm: "2025/1", prereqs: ["ENC-25"] },
-  { id: "ENC-11", name: "Introdução à Extensão",                  sem: 2,  status: "done",    academicTerm: "2025/1", prereqs: [] },
-  { id: "ENC-14", name: "Estruturas de Dados",                    sem: 3,  status: "done",    academicTerm: "2025/1", prereqs: ["ENC-08"] },
+  // 3º Período
+  { id: "ENC-015", name: "Cálculo Diferencial e Integral II",           sem: 3, ch: 68, status: "done", prereqs: ["ENC-011"] },
+  { id: "ENC-016", name: "Eletrônica Digital",                          sem: 3, ch: 68, status: "done", prereqs: ["ENC-013"] },
+  { id: "ENC-017", name: "Estruturas de Dados",                         sem: 3, ch: 68, status: "done", prereqs: ["ENC-009"] },
+  { id: "ENC-018", name: "Física Geral e Experimental II",              sem: 3, ch: 68, status: "done", prereqs: ["ENC-013"] },
+  { id: "ENC-019", name: "Introdução à Extensão",                       sem: 3, ch: 34, status: "done", prereqs: [] },
+  { id: "ENC-020", name: "Probabilidade e Estatística Computacional",   sem: 3, ch: 34, status: "done", prereqs: ["ENC-005"] },
+  { id: "ENC-021", name: "Sistemas Operacionais",                       sem: 3, ch: 68, status: "done", prereqs: ["ENC-010"] },
 
-  { id: "ENC-13", name: "Cálculo Diferencial e Integral II",      sem: 3,  status: "done",    academicTerm: "2025/2", prereqs: ["ENC-07"] },
-  { id: "ENC-20", name: "Programação Orientada a Objetos",        sem: 4,  status: "done",    academicTerm: "2025/2", prereqs: ["ENC-14"] },
-  { id: "ENC-19", name: "Banco de Dados",                         sem: 4,  status: "done",    academicTerm: "2025/2", prereqs: ["ENC-14"] },
-  { id: "ENC-21", name: "Física Geral e Experimental III",        sem: 4,  status: "done",    academicTerm: "2025/2", prereqs: ["ENC-13","ENC-15"] },
-  { id: "ENC-17", name: "Matemática Discreta e Teoria dos Grafos",sem: 3,  status: "done",    academicTerm: "2025/2", prereqs: ["ENC-08"] },
-  { id: "ENC-35", name: "Circuitos Elétricos I",                  sem: 6,  status: "done",    academicTerm: "2025/2", prereqs: ["ENC-21","ENC-22"] },
-  { id: "ENC-36", name: "Transmissão e Comunicação de Dados",     sem: 6,  status: "done",    academicTerm: "2025/2", prereqs: ["ENC-31","ENC-10"] },
-  { id: "ENC-10", name: "Probabilidade e Estatística",            sem: 2,  status: "done",    academicTerm: "2025/2", tags: ["Extracurricular"], prereqs: ["ENC-01"] },
-  { id: "ENC-18", name: "Saúde e Segurança do Trabalho",          sem: 3,  status: "done",    academicTerm: "2025/2", tags: ["Extracurricular"], prereqs: [] },
-  { id: "ENC-12", name: "Ética Profissional",                     sem: 2,  status: "done",    academicTerm: "2025/2", tags: ["Cumprida"], prereqs: [] },
+  // 4º Período
+  { id: "ENC-022", name: "Banco de Dados",                              sem: 4, ch: 68, status: "done", prereqs: ["ENC-017"] },
+  { id: "ENC-023", name: "Cálculo Numérico",                            sem: 4, ch: 68, status: "done", prereqs: ["ENC-015"] },
+  { id: "ENC-024", name: "Equações Diferenciais",                       sem: 4, ch: 68, status: "done", prereqs: ["ENC-015"] },
+  { id: "ENC-025", name: "Física Geral e Experimental III",             sem: 4, ch: 68, status: "done", prereqs: ["ENC-018"] },
+  { id: "ENC-026", name: "Matemática Discreta e Teoria dos Grafos",     sem: 4, ch: 34, status: "done", prereqs: ["ENC-009"] },
+  { id: "ENC-027", name: "Programação Orientada a Objetos",             sem: 4, ch: 68, status: "done", prereqs: ["ENC-017"] },
+  { id: "ENC-028", name: "Transmissão e Comunicação de Dados",           sem: 4, ch: 68, status: "done", prereqs: ["ENC-021"] },
 
-  { id: "ENC-24", name: "Cálculo Numérico",                       sem: 5,  status: "current", academicTerm: "2026/1", prereqs: ["ENC-13","ENC-23"] },
-  { id: "ENC-22", name: "Equações Diferenciais",                  sem: 5,  status: "current", academicTerm: "2026/1", prereqs: ["ENC-13"] },
-  { id: "ENC-34", name: "Engenharia de Software",                 sem: 5,  status: "current", academicTerm: "2026/1", prereqs: ["ENC-19","ENC-20"] },
-  { id: "ENC-30", name: "Programação WEB",                        sem: 5,  status: "current", academicTerm: "2026/1", prereqs: ["ENC-19","ENC-20"] },
-  { id: "ENC-29", name: "Compiladores",                           sem: 5,  status: "current", academicTerm: "2026/1", prereqs: ["ENC-14"] },
-  { id: "ENC-32", name: "Laboratório de Circuitos Elétricos I",   sem: 5,  status: "current", academicTerm: "2026/1", prereqs: ["ENC-21","ENC-22"] },
-  { id: "ENC-33", name: "Extensão I",                             sem: 5,  status: "current", academicTerm: "2026/1", prereqs: ["ENC-11"] },
+  // 5º Período
+  { id: "ENC-029", name: "Circuitos Elétricos I",                       sem: 5, ch: 68, status: "current", prereqs: ["ENC-025"] },
+  { id: "ENC-030", name: "Compiladores",                                sem: 5, ch: 68, status: "current", prereqs: ["ENC-017"] },
+  { id: "ENC-031", name: "Engenharia de Software",                      sem: 5, ch: 68, status: "current", prereqs: ["ENC-022", "ENC-027"] },
+  { id: "ENC-032", name: "Ética Profissional",                          sem: 5, ch: 34, status: "current", prereqs: [] },
+  { id: "ENC-033", name: "Extensão I",                                  sem: 5, ch: 102, status: "current", prereqs: ["ENC-019"] },
+  { id: "ENC-034", name: "Laboratório de Circuitos Elétricos I",         sem: 5, ch: 34, status: "current", prereqs: ["ENC-029"] },
+  { id: "ENC-035", name: "Programação WEB",                             sem: 5, ch: 68, status: "current", prereqs: ["ENC-022", "ENC-027"] },
 
-  { id: "ENC-37", name: "Análise e Proj. de Sistemas Computacionais", sem: 6, status: "next", academicTerm: "2026/2", prereqs: ["ENC-34"] },
-  { id: "ENC-38", name: "Extensão II",                            sem: 6,  status: "next",    academicTerm: "2026/2", prereqs: ["ENC-33"] },
+  // 6º Período
+  { id: "ENC-036", name: "Análise e Projeto de Sistemas Computacionais", sem: 6, ch: 68, status: "next", prereqs: ["ENC-031"] },
+  { id: "ENC-037", name: "Circuitos Elétricos II",                      sem: 6, ch: 68, status: "next", prereqs: ["ENC-029"] },
+  { id: "ENC-038", name: "Eletrônica Analógica I",                      sem: 6, ch: 68, status: "next", prereqs: ["ENC-029"] },
+  { id: "ENC-039", name: "Inteligência Artificial",                     sem: 6, ch: 68, status: "next", prereqs: ["ENC-017", "ENC-020"] },
+  { id: "ENC-040", name: "Laboratório de Circuitos Elétricos II",        sem: 6, ch: 34, status: "next", prereqs: ["ENC-037"] },
+  { id: "ENC-041", name: "Redes de Computadores",                       sem: 6, ch: 68, status: "next", prereqs: ["ENC-028"] },
+  { id: "ENC-042", name: "Sinais e Sistemas Lineares",                  sem: 6, ch: 68, status: "next", prereqs: ["ENC-024"] },
 
-  { id: "ENC-39", name: "Circuitos Elétricos II",                 sem: 7,  status: "future",  academicTerm: "2027/1", prereqs: ["ENC-35"] },
-  { id: "ENC-40", name: "Eletrônica Analógica I",                 sem: 7,  status: "future",  academicTerm: "2027/1", prereqs: ["ENC-35"] },
-  { id: "ENC-41", name: "Sinais e Sistemas Lineares",             sem: 7,  status: "future",  academicTerm: "2027/1", prereqs: ["ENC-35"] },
-  { id: "ENC-42", name: "Redes de Computadores",                  sem: 7,  status: "future",  academicTerm: "2027/1", prereqs: ["ENC-36"] },
-  { id: "ENC-43", name: "Inteligência Artificial",                sem: 7,  status: "future",  academicTerm: "2027/1", prereqs: ["ENC-14","ENC-10"] },
-  { id: "ENC-44", name: "Extensão III",                           sem: 7,  status: "future",  academicTerm: "2027/1", prereqs: ["ENC-38"] },
+  // 7º Período
+  { id: "ENC-043", name: "Controle de Sistemas Contínuos I",            sem: 7, ch: 68, status: "future", prereqs: ["ENC-024"] },
+  { id: "ENC-044", name: "Eletrônica Analógica II",                     sem: 7, ch: 68, status: "future", prereqs: ["ENC-038"] },
+  { id: "ENC-045", name: "Extensão II",                                 sem: 7, ch: 102, status: "future", prereqs: ["ENC-033"] },
+  { id: "ENC-046", name: "Microcontroladores",                          sem: 7, ch: 68, status: "future", prereqs: ["ENC-037"] },
+  { id: "ENC-047", name: "Mineração de Dados",                          sem: 7, ch: 68, status: "future", prereqs: ["ENC-020", "ENC-039"] },
+  { id: "ENC-048", name: "Segurança de Sistemas de Computação",          sem: 7, ch: 34, status: "future", prereqs: ["ENC-041"] },
+  { id: "ENC-049", name: "Segurança do Trabalho",                       sem: 7, ch: 34, status: "future", prereqs: [] },
 
-  { id: "ENC-45", name: "Eletrônica Analógica II",                sem: 8,  status: "future",  academicTerm: "2027/2", prereqs: ["ENC-40"] },
-  { id: "ENC-46", name: "Processamento Digital de Sinais",        sem: 8,  status: "future",  academicTerm: "2027/2", prereqs: ["ENC-41"] },
-  { id: "ENC-47", name: "Sistemas Embarcados",                    sem: 8,  status: "future",  academicTerm: "2027/2", prereqs: ["ENC-39","ENC-31"] },
-  { id: "ENC-48", name: "Segurança Computacional",                sem: 8,  status: "future",  academicTerm: "2027/2", prereqs: ["ENC-42"] },
-  { id: "ENC-49", name: "Extensão IV",                            sem: 8,  status: "future",  academicTerm: "2027/2", prereqs: ["ENC-44"] },
-
-  { id: "ENC-50", name: "Projeto Integrador I",                   sem: 9,  status: "future",  academicTerm: "2028/1", prereqs: ["ENC-37","ENC-43"] },
-  { id: "ENC-51", name: "Visão Computacional",                    sem: 9,  status: "future",  academicTerm: "2028/1", prereqs: ["ENC-43"] },
-  { id: "ENC-52", name: "Internet das Coisas",                    sem: 9,  status: "future",  academicTerm: "2028/1", prereqs: ["ENC-47","ENC-42"] },
-  { id: "ENC-53", name: "Extensão V",                             sem: 9,  status: "future",  academicTerm: "2028/1", prereqs: ["ENC-49"] },
-
-  { id: "ENC-54", name: "Trabalho de Conclusão de Curso",         sem: 10, status: "future",  academicTerm: "2028/2", prereqs: ["ENC-50"] },
+  // 8º Período
+  { id: "ENC-050", name: "Administração",                               sem: 8, ch: 34, status: "future", prereqs: [] },
+  { id: "ENC-051", name: "Disciplina Eletiva",                          sem: 8, ch: 34, status: "future", prereqs: [] },
+  { id: "ENC-052", name: "Processamento Digital de Sinais",             sem: 8, ch: 34, status: "future", prereqs: ["ENC-042"] },
+  { id: "ENC-053", name: "Projeto de Sistemas Inteligentes",            sem: 8, ch: 68, status: "future", prereqs: ["ENC-039"] },
+  { id: "ENC-054", name: "Trabalho de Conclusão do Curso",              sem: 8, ch: 34, status: "future", prereqs: ["ENC-036"] },
 ];
 
 const ACADEMIC_TERMS = [
@@ -88,13 +94,13 @@ const ACADEMIC_TERMS = [
 
 // ─── ATTENDANCE META ─────────────────────────────────────────────────────────
 const ATTENDANCE_META = {
-  "ENC-34": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Eng. Software" },
-  "ENC-33": { cargaHoraria: 60, aulasPorDia: 3, shortName: "Extensão I" },
-  "ENC-29": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Compiladores" },
-  "ENC-32": { cargaHoraria: 40, aulasPorDia: 2, shortName: "Lab. Circuitos I" },
-  "ENC-30": { cargaHoraria: 60, aulasPorDia: 3, shortName: "Prog. WEB" },
-  "ENC-24": { cargaHoraria: 60, aulasPorDia: 2, shortName: "Cálculo Numérico" },
-  "ENC-22": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Eq. Diferenciais" },
+  "ENC-031": { cargaHoraria: 68, aulasPorDia: 4, shortName: "Eng. Software" },
+  "ENC-033": { cargaHoraria: 102, aulasPorDia: 3, shortName: "Extensão I" },
+  "ENC-030": { cargaHoraria: 68, aulasPorDia: 4, shortName: "Compiladores" },
+  "ENC-034": { cargaHoraria: 34, aulasPorDia: 2, shortName: "Lab. Circuitos I" },
+  "ENC-035": { cargaHoraria: 68, aulasPorDia: 3, shortName: "Prog. WEB" },
+  "ENC-023": { cargaHoraria: 68, aulasPorDia: 2, shortName: "Cálculo Numérico" },
+  "ENC-024": { cargaHoraria: 68, aulasPorDia: 4, shortName: "Eq. Diferenciais" },
 };
 
 // ─── SCHEDULE DATA ───────────────────────────────────────────────────────────
@@ -108,51 +114,51 @@ const SCHEDULE = [
   {
     day: "Segunda", dayShort: "SEG",
     blocks: [
-      { id: "ENC-34", name: "Engenharia de Software", start: toMin(13,0),  end: toMin(16,40), aulas: 4 },
-      { id: "ENC-33", name: "Extensão I",             start: toMin(16,40), end: toMin(19,40), aulas: 3,
+      { id: "ENC-031", name: "Engenharia de Software", start: toMin(13,0),  end: toMin(16,40), aulas: 4 },
+      { id: "ENC-033", name: "Extensão I",             start: toMin(16,40), end: toMin(19,40), aulas: 3,
         intervals: [{ start: toMin(18,20), end: toMin(18,50) }] },
     ],
   },
   {
     day: "Terça", dayShort: "TER",
     blocks: [
-      { id: "ENC-29", name: "Compiladores", start: toMin(13,0),  end: toMin(16,40), aulas: 4 },
-      { id: "ENC-33", name: "Extensão I",   start: toMin(16,40), end: toMin(19,40), aulas: 3,
+      { id: "ENC-030", name: "Compiladores", start: toMin(13,0),  end: toMin(16,40), aulas: 4 },
+      { id: "ENC-033", name: "Extensão I",   start: toMin(16,40), end: toMin(19,40), aulas: 3,
         intervals: [{ start: toMin(18,20), end: toMin(18,50) }] },
     ],
   },
   {
     day: "Quarta", dayShort: "QUA",
     blocks: [
-      { id: "ENC-32", name: "Lab. Circuitos I", start: toMin(13,0), end: toMin(14,40), aulas: 2 },
+      { id: "ENC-034", name: "Lab. Circuitos I", start: toMin(13,0), end: toMin(14,40), aulas: 2 },
     ],
   },
   {
     day: "Quinta", dayShort: "QUI",
     blocks: [
-      { id: "ENC-30", name: "Prog. WEB",        start: toMin(13,0),  end: toMin(13,50), aulas: 1 },
-      { id: "ENC-24", name: "Cálculo Numérico", start: toMin(13,50), end: toMin(15,30), aulas: 2 },
-      { id: "ENC-30", name: "Prog. WEB",        start: toMin(15,50), end: toMin(17,30), aulas: 2 },
+      { id: "ENC-035", name: "Prog. WEB",        start: toMin(13,0),  end: toMin(13,50), aulas: 1 },
+      { id: "ENC-023", name: "Cálculo Numérico", start: toMin(13,50), end: toMin(15,30), aulas: 2 },
+      { id: "ENC-035", name: "Prog. WEB",        start: toMin(15,50), end: toMin(17,30), aulas: 2 },
     ],
   },
   {
     day: "Sexta", dayShort: "SEX",
     blocks: [
-      { id: "ENC-24", name: "Cálculo Numérico", start: toMin(13,0),  end: toMin(14,40), aulas: 2 },
-      { id: "ENC-22", name: "Eq. Diferenciais", start: toMin(18,50), end: toMin(22,25), aulas: 4,
+      { id: "ENC-023", name: "Cálculo Numérico", start: toMin(13,0),  end: toMin(14,40), aulas: 2 },
+      { id: "ENC-024", name: "Eq. Diferenciais", start: toMin(18,50), end: toMin(22,25), aulas: 4,
         intervals: [{ start: toMin(20,30), end: toMin(20,45) }] },
     ],
   },
 ];
 
 const SUBJECT_COLORS = {
-  "ENC-34": { bg: "bg-violet-600",  border: "border-violet-500", text: "text-violet-100", dot: "bg-violet-400",  light: "bg-violet-500/15" },
-  "ENC-33": { bg: "bg-teal-600",    border: "border-teal-500",   text: "text-teal-100",   dot: "bg-teal-400",    light: "bg-teal-500/15" },
-  "ENC-29": { bg: "bg-orange-600",  border: "border-orange-500", text: "text-orange-100", dot: "bg-orange-400",  light: "bg-orange-500/15" },
-  "ENC-32": { bg: "bg-pink-600",    border: "border-pink-500",   text: "text-pink-100",   dot: "bg-pink-400",    light: "bg-pink-500/15" },
-  "ENC-30": { bg: "bg-sky-600",     border: "border-sky-500",    text: "text-sky-100",    dot: "bg-sky-400",     light: "bg-sky-500/15" },
-  "ENC-24": { bg: "bg-amber-600",   border: "border-amber-500",  text: "text-amber-100",  dot: "bg-amber-400",   light: "bg-amber-500/15" },
-  "ENC-22": { bg: "bg-rose-600",    border: "border-rose-500",   text: "text-rose-100",   dot: "bg-rose-400",    light: "bg-rose-500/15" },
+  "ENC-031": { bg: "bg-violet-600",  border: "border-violet-500", text: "text-violet-100", dot: "bg-violet-400",  light: "bg-violet-500/15" },
+  "ENC-033": { bg: "bg-teal-600",    border: "border-teal-500",   text: "text-teal-100",   dot: "bg-teal-400",    light: "bg-teal-500/15" },
+  "ENC-030": { bg: "bg-orange-600",  border: "border-orange-500", text: "text-orange-100", dot: "bg-orange-400",  light: "bg-orange-500/15" },
+  "ENC-034": { bg: "bg-pink-600",    border: "border-pink-500",   text: "text-pink-100",   dot: "bg-pink-400",    light: "bg-pink-500/15" },
+  "ENC-035": { bg: "bg-sky-600",     border: "border-sky-500",    text: "text-sky-100",    dot: "bg-sky-400",     light: "bg-sky-500/15" },
+  "ENC-023": { bg: "bg-amber-600",   border: "border-amber-500",  text: "text-amber-100",  dot: "bg-amber-400",   light: "bg-amber-500/15" },
+  "ENC-024": { bg: "bg-rose-600",    border: "border-rose-500",   text: "text-rose-100",   dot: "bg-rose-400",    light: "bg-rose-500/15" },
 };
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -168,8 +174,21 @@ function getCascadeCount(subjectId, allSubjects) {
   return visited.size;
 }
 
+// Calcula metadados dinâmicos de uma disciplina baseado em sua carga horária
+function getDynamicAttendanceMeta(subject) {
+  const ch = subject.ch;
+  const aulasPorDia = ch <= 34 ? 2 : 4;
+  const limite = Math.floor(ch * 0.25);
+  return {
+    cargaHoraria: ch,
+    aulasPorDia,
+    limite,
+    shortName: subject.name.substring(0, 15), // Fallback: usa nome abreviado
+  };
+}
+
 function calcAbsence(meta, faltas) {
-  const limite = Math.floor(meta.cargaHoraria * 0.25);
+  const limite = meta.limite || Math.floor(meta.cargaHoraria * 0.25);
   const restam = limite - faltas;
   const diasRestantes = restam <= 0 ? 0 : Math.floor(restam / meta.aulasPorDia);
   const pct = Math.min(100, Math.round((faltas / limite) * 100));
@@ -177,6 +196,21 @@ function calcAbsence(meta, faltas) {
   if (faltas >= limite) state = "danger";
   else if (diasRestantes <= 2) state = "warning";
   return { limite, restam, diasRestantes, pct, state };
+}
+
+// Cores dinâmicas com fallback neutro
+function getSubjectColors(subjectId) {
+  const predefined = SUBJECT_COLORS[subjectId];
+  if (predefined) return predefined;
+  
+  // Fallback: tons neutros
+  return {
+    bg: "bg-slate-600",
+    border: "border-slate-500",
+    text: "text-slate-100",
+    dot: "bg-slate-400",
+    light: "bg-slate-500/15"
+  };
 }
 
 // ─── STATUS CONFIG ────────────────────────────────────────────────────────────
@@ -216,10 +250,9 @@ function StatCard({ icon: Icon, label, value, color }) {
 
 // ─── ABSENCE CARD ─────────────────────────────────────────────────────────────
 function AbsenceCard({ subject, faltas, onSetFaltas }) {
-  const meta = ATTENDANCE_META[subject.id];
-  if (!meta) return null;
+  const meta = getDynamicAttendanceMeta(subject);
   const { limite, restam, diasRestantes, pct, state } = calcAbsence(meta, faltas);
-  const c = SUBJECT_COLORS[subject.id];
+  const c = getSubjectColors(subject.id);
 
   const stateStyle = {
     safe:    { bar: "bg-emerald-500", icon: Shield,        textColor: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },
@@ -268,7 +301,7 @@ function AbsenceCard({ subject, faltas, onSetFaltas }) {
           <IconAlert size={14} className={stateStyle.textColor} />
           <p className={`text-xs font-medium ${stateStyle.textColor}`}>
             {state === "danger"  && "Limite estourado. Reprovado por falta (RF)."}
-            {state === "warning" && `Atenção! Só pode faltar mais ${diasRestantes} dia${diasRestantes !== 1 ? "s" : ""} de ${meta.shortName}.`}
+            {state === "warning" && `Atenção! Só pode faltar mais ${diasRestantes} dia${diasRestantes !== 1 ? "s" : ""} de ${subject.name.substring(0, 20)}.`}
             {state === "safe"    && `Tranquilo. Ainda pode faltar ${diasRestantes} dia${diasRestantes !== 1 ? "s" : ""}.`}
           </p>
         </div>
@@ -293,11 +326,11 @@ function ScheduleTab() {
     <div className="space-y-6">
       <div className="flex flex-wrap gap-2">
         {Object.entries(SUBJECT_COLORS).map(([id, c]) => {
-          const meta = ATTENDANCE_META[id];
-          return meta ? (
+          const subject = SUBJECTS.find(s => s.id === id);
+          return subject ? (
             <div key={id} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${c.light} border ${c.border}`}>
               <span className={`w-2 h-2 rounded-full ${c.dot}`} />
-              <span className="text-xs text-white font-medium">{meta.shortName}</span>
+              <span className="text-xs text-white font-medium">{subject.name.substring(0, 15)}</span>
             </div>
           ) : null;
         })}
@@ -324,7 +357,7 @@ function ScheduleTab() {
                   <div key={m} className="absolute top-0 bottom-0 w-px bg-slate-700/40" style={{ left: `${pct(m)}%` }} />
                 ))}
                 {blocks.map((block, i) => {
-                  const c = SUBJECT_COLORS[block.id];
+                  const c = getSubjectColors(block.id);
                   const left  = pct(block.start);
                   const width = pct(block.end) - pct(block.start);
                   return (
@@ -348,7 +381,7 @@ function ScheduleTab() {
 
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {blocks.map((block, i) => {
-                  const c = SUBJECT_COLORS[block.id];
+                  const c = getSubjectColors(block.id);
                   return (
                     <span key={`${block.id}-${i}-lbl`}
                       className={`text-[10px] px-2 py-0.5 rounded-full ${c.light} border ${c.border} ${c.text}`}>
@@ -384,9 +417,11 @@ function ScheduleTab() {
 
 // ─── ABSENCE TAB ─────────────────────────────────────────────────────────────
 function AbsenceTab({ subjects, faltas, setFaltas }) {
-  const currentSubs = subjects.filter(s => s.status === "current" && ATTENDANCE_META[s.id]);
+  // Filtro dinâmico: inclui TODAS as disciplinas com status "current", sem dependência de ATTENDANCE_META
+  const currentSubs = subjects.filter(s => s.status === "current");
   const alerts = currentSubs.filter(s => {
-    const { state } = calcAbsence(ATTENDANCE_META[s.id], faltas[s.id] || 0);
+    const meta = getDynamicAttendanceMeta(s);
+    const { state } = calcAbsence(meta, faltas[s.id] || 0);
     return state !== "safe";
   });
 
@@ -400,10 +435,11 @@ function AbsenceTab({ subjects, faltas, setFaltas }) {
           </div>
           <div className="flex flex-wrap gap-2">
             {alerts.map(s => {
-              const { state, diasRestantes } = calcAbsence(ATTENDANCE_META[s.id], faltas[s.id] || 0);
+              const meta = getDynamicAttendanceMeta(s);
+              const { state, diasRestantes } = calcAbsence(meta, faltas[s.id] || 0);
               return (
                 <span key={s.id} className={`text-xs px-2.5 py-1 rounded-full font-medium ${state === "danger" ? "bg-red-500/20 text-red-300" : "bg-amber-500/20 text-amber-300"}`}>
-                  {ATTENDANCE_META[s.id].shortName}{state !== "danger" && ` · ${diasRestantes}d restantes`}
+                  {s.name.substring(0, 15)}{state !== "danger" && ` · ${diasRestantes}d restantes`}
                 </span>
               );
             })}
@@ -440,13 +476,13 @@ function AbsenceTab({ subjects, faltas, setFaltas }) {
             </thead>
             <tbody>
               {currentSubs.map(s => {
-                const meta = ATTENDANCE_META[s.id];
+                const meta = getDynamicAttendanceMeta(s);
                 const f = faltas[s.id] || 0;
                 const { limite, restam, diasRestantes, state } = calcAbsence(meta, f);
                 const statusLabel = { safe: "✅ Seguro", warning: "⚠️ Alerta", danger: "🔴 RF" }[state];
                 return (
                   <tr key={s.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                    <td className="px-3 py-2.5 text-white font-medium">{meta.shortName}</td>
+                    <td className="px-3 py-2.5 text-white font-medium">{s.name.substring(0, 20)}</td>
                     <td className="px-3 py-2.5 text-slate-400">{meta.cargaHoraria}</td>
                     <td className="px-3 py-2.5 text-slate-400">{limite}</td>
                     <td className="px-3 py-2.5 font-bold text-white">{f}</td>
@@ -464,89 +500,309 @@ function AbsenceTab({ subjects, faltas, setFaltas }) {
   );
 }
 
+// ─── DIFF / INSTRUÇÕES DE INTEGRAÇÃO ────────────────────────────────────────
+//
+// Aplique estas 3 mudanças no seu AcademicDashboard.jsx existente.
+// Não precisa reescrever o arquivo inteiro.
+//
+// ════════════════════════════════════════════════════════════════════════════
+// MUDANÇA 1 — Adicione o import do hook no topo do arquivo
+// (logo após os imports do lucide-react)
+// ════════════════════════════════════════════════════════════════════════════
+
+import { useSuapData } from "../../hooks/useSuapData";
+
+// ════════════════════════════════════════════════════════════════════════════
+// MUDANÇA 2 — Substitua o início da função AcademicDashboard
+//
+// ANTES:
+//   export default function AcademicDashboard() {
+//     const [tab, setTab] = useState("overview");
+//     const [faltas, setFaltas] = useState({});
+//
+// DEPOIS (cole isso):
+// ════════════════════════════════════════════════════════════════════════════
+
+export default function AcademicDashboard() {
+}
+  const [tab, setTab] = useState("overview");
+
+  // Dados vindos do SUAP (gerados pelo suap_sync.py)
+  const {
+    faltas,
+    setFaltas,
+    atualizadoEm,
+    loaded,
+    error: suapError,
+  } = useSuapData();
+
+  // Enquanto carrega o JSON, mostra tela de loading
+  if (!loaded) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <p className="text-slate-400 text-sm animate-pulse">Carregando dados...</p>
+      </div>
+    );
+  }
+
+  // --- O RESTO DO COMPONENTE CONTINUA IGUAL A PARTIR DAQUI ---
+  // (stats, doneSubs, alertCount, TABS, return ...)
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// MUDANÇA 3 — Adicione o badge "Atualizado em" no header do dashboard
+//
+// Dentro do return, no bloco do header (onde está o "Dashboard Acadêmico"),
+// adicione logo abaixo do <p className="text-slate-500 text-sm mt-0.5">:
+// ════════════════════════════════════════════════════════════════════════════
+
+{atualizadoEm && (
+  <p className="text-xs text-violet-700 mt-1 flex items-center gap-1">
+    <span className="w-1.5 h-1.5 rounded-full bg-violet-500 inline-block" />
+    Dados SUAP · {new Date(atualizadoEm).toLocaleString("pt-BR")}
+  </p>
+)}
+{suapError && (
+  <p className="text-xs text-amber-600 mt-1">⚠ {suapError}</p>
+)}
+
+
+// ─── CURRICULUM TAB ──────────────────────────────────────────────────────────
+function CurriculumTab({ subjects, getEffectiveStatus, updateSubjectStatus, getUnmetPrereqs, arePrereqsMet, onCompleteSemester }) {
+  // Agrupar por semestre (1-8)
+  const semesters = {};
+  subjects.forEach(subject => {
+    if (!semesters[subject.sem]) {
+      semesters[subject.sem] = [];
+    }
+    semesters[subject.sem].push(subject);
+  });
+
+  // Ordenar semestres
+  const semesterKeys = Object.keys(semesters).map(Number).sort((a, b) => a - b);
+
+  const semesterLabels = {
+    1: "1º Período",
+    2: "2º Período",
+    3: "3º Período",
+    4: "4º Período",
+    5: "5º Período",
+    6: "6º Período",
+    7: "7º Período",
+    8: "8º Período",
+  };
+
+  const statusOptions = [
+    { value: "done", label: "✓ Concluída", color: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" },
+    { value: "current", label: "◉ Cursando", color: "bg-violet-500/20 text-violet-300 border-violet-500/30" },
+    { value: "next", label: "→ Próxima", color: "bg-sky-500/20 text-sky-300 border-sky-500/30" },
+    { value: "future", label: "◌ Futura", color: "bg-slate-700/50 text-slate-400 border-slate-600/30" },
+  ];
+
+  return (
+    <div className="space-y-8">
+      {semesterKeys.map(semNum => {
+        const subs = semesters[semNum];
+        const totalCH = subs.reduce((sum, s) => sum + s.ch, 0);
+        const completedCount = subs.filter(s => getEffectiveStatus(s) === "done").length;
+
+        return (
+          <div key={semNum}>
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <BookOpen size={16} className="text-violet-400" />
+                  <h3 className="text-lg font-bold text-violet-400">{semesterLabels[semNum]}</h3>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  {completedCount} de {subs.length} · {totalCH}h total
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {/* Botão Concluir Semestre */}
+                {completedCount < subs.length && (
+                  <button
+                    onClick={() => onCompleteSemester(semNum)}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors flex items-center gap-1.5"
+                    title="Marcar todas as disciplinas deste semestre como concluídas"
+                  >
+                    <CheckCircle2 size={14} />
+                    Concluir
+                  </button>
+                )}
+                
+                {completedCount > 0 && completedCount === subs.length && (
+                  <span className="text-xs px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium">
+                    ✓ Concluído
+                  </span>
+                )}
+                {completedCount > 0 && completedCount < subs.length && (
+                  <span className="text-xs px-3 py-1.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 font-medium">
+                    ◉ Cursando
+                  </span>
+                )}
+                {completedCount === 0 && (
+                  <span className="text-xs px-3 py-1.5 rounded-full bg-slate-700/50 text-slate-400 border border-slate-600/30 font-medium">
+                    ◌ Futuro
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {subs.map(subject => {
+                const effectiveStatus = getEffectiveStatus(subject);
+                const s = STATUS[effectiveStatus];
+                const isConcluded = effectiveStatus === "done";
+                const unmetPrereqs = getUnmetPrereqs(subject);
+                const hasUnmetPrereqs = unmetPrereqs.length > 0;
+                
+                return (
+                  <div
+                    key={subject.id}
+                    className={`rounded-xl border p-3.5 transition-all duration-200 ${
+                      isConcluded
+                        ? `${s.border} ${s.bg}`
+                        : "border-slate-700 bg-slate-900/50"
+                    } ${hasUnmetPrereqs && (effectiveStatus === "current" || effectiveStatus === "next") ? "ring-2 ring-amber-400/50" : ""}`}
+                  >
+                    {/* Aviso de pré-requisitos não cumpridos */}
+                    {hasUnmetPrereqs && (effectiveStatus === "current" || effectiveStatus === "next") && (
+                      <div className="mb-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-start gap-2">
+                        <AlertTriangle size={12} className="text-amber-400 mt-0.5 shrink-0" />
+                        <p className="text-[10px] text-amber-300">
+                          Pré-req.: {unmetPrereqs.map(p => p.id).join(", ")}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className={`text-xs font-bold ${isConcluded ? s.text : "text-slate-600"}`}>
+                            {subject.id}
+                          </span>
+                          <span className="text-xs text-slate-600">{subject.ch}h</span>
+                        </div>
+                        <h4 className={`text-sm font-semibold leading-snug ${isConcluded ? "text-white" : "text-slate-300"}`}>
+                          {subject.name}
+                        </h4>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between mb-3">
+                      <span className={`text-xs ${isConcluded ? s.text : "text-slate-600"} flex items-center gap-1`}>
+                        {effectiveStatus === "done" && <CheckCircle2 size={11} />}
+                        {effectiveStatus === "current" && <Circle size={11} className="animate-pulse" />}
+                        {effectiveStatus === "next" && <ArrowRight size={11} />}
+                        {effectiveStatus === "future" && <Clock size={11} />}
+                        {s.label}
+                      </span>
+                      {subject.prereqs.length > 0 && (
+                        <span className="text-xs text-slate-600">
+                          {subject.prereqs.length} pré-req.
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Status Change Buttons */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {statusOptions.map(opt => (
+                        <button
+                          key={opt.value}
+                          onClick={() => updateSubjectStatus(subject.id, opt.value)}
+                          className={`text-xs px-2 py-1 rounded-lg border font-medium transition-all ${
+                            effectiveStatus === opt.value
+                              ? opt.color
+                              : "border-slate-700 text-slate-500 hover:border-slate-600 hover:text-slate-400 bg-slate-900/30"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── OVERVIEW TAB ────────────────────────────────────────────────────────────
-function SubjectCard({ subject }) {
+// Componente minimalista para exibição em modo leitura na OverviewTab
+function MinimalSubjectCard({ subject }) {
   const s = STATUS[subject.status];
   return (
-    <div className={`rounded-xl border ${s.border} ${s.bg} p-3.5 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg`}>
-      <div className="flex items-start justify-between gap-2">
-        <span className="text-sm font-medium text-white leading-snug">{subject.name}</span>
-        <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap shrink-0 font-medium ${s.badge}`}>{subject.id}</span>
+    <div className={`rounded-xl border ${s.border} ${s.bg} p-3.5 transition-all duration-200`}>
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex-1">
+          <h4 className="text-sm font-semibold text-white leading-snug">{subject.name}</h4>
+        </div>
+        <span className={`text-xs px-2.5 py-0.5 rounded-full whitespace-nowrap shrink-0 font-bold ${s.badge}`}>
+          {subject.id}
+        </span>
       </div>
-      <div className="mt-2 flex flex-wrap gap-2 items-center">
-        {subject.academicTerm && (
-          <span className="text-[10px] uppercase tracking-widest text-slate-500">{subject.academicTerm}</span>
-        )}
-        {subject.tags?.map(tag => (
-          <span key={tag} className="text-[10px] px-2 py-1 rounded-full bg-slate-800 text-slate-400">{tag}</span>
-        ))}
-      </div>
-      <div className="mt-2 flex items-center gap-1.5">
-        <span className={`text-xs ${s.text} flex items-center gap-1`}>
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <span className={`${s.text} flex items-center gap-1.5`}>
           {subject.status === "done"    && <CheckCircle2 size={11} />}
           {subject.status === "current" && <Circle size={11} className="animate-pulse" />}
           {subject.status === "next"    && <ArrowRight size={11} />}
           {subject.status === "future"  && <Clock size={11} />}
-          {s.label}
+          <span>{s.label}</span>
         </span>
-        {subject.prereqs.length > 0 && <span className="text-xs text-slate-600">· {subject.prereqs.length} pré-req.</span>}
+        {subject.prereqs.length > 0 && (
+          <span className="text-slate-600 font-medium">{subject.prereqs.length} pré-req.</span>
+        )}
       </div>
     </div>
   );
 }
 
 function OverviewTab({ subjects }) {
+  // Exibir apenas disciplinas em progresso (excluindo concluídas)
   const current = subjects.filter(s => s.status === "current");
   const next    = subjects.filter(s => s.status === "next");
   const future  = subjects.filter(s => s.status === "future");
+
   const Section = ({ title, icon: Icon, items, color }) => (
     <div>
-      <div className="flex items-center gap-2 mb-3">
-        <Icon size={15} className={color} />
-        <h3 className={`text-sm font-semibold ${color}`}>{title}</h3>
-        <span className="text-xs text-slate-600 ml-auto">{items.length} disciplinas</span>
+      <div className="flex items-center gap-2 mb-4">
+        <Icon size={16} className={color} />
+        <h3 className={`text-base font-semibold ${color}`}>{title}</h3>
+        <span className="text-xs text-slate-600 ml-auto">{items.length} {items.length === 1 ? "disciplina" : "disciplinas"}</span>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-        {items.map(s => <SubjectCard key={s.id} subject={s} />)}
-      </div>
+      {items.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {items.map(s => <MinimalSubjectCard key={s.id} subject={s} />)}
+        </div>
+      ) : (
+        <p className="text-sm text-slate-500 italic py-6">Nenhuma disciplina nesta seção</p>
+      )}
     </div>
   );
-  const termGroups = ACADEMIC_TERMS.map(term => ({
-    ...term,
-    items: subjects.filter(s => s.academicTerm === term.id),
-  })).filter(term => term.items.length > 0);
+
+  const hasAnySubjects = current.length > 0 || next.length > 0 || future.length > 0;
 
   return (
     <div className="space-y-8">
-      <Section title="5º Semestre — Cursando (2026/1)" icon={BookOpen}  items={current} color="text-violet-400" />
-      <div className="border-t border-slate-800" />
-      <Section title="Próximos Passos — Semestre 6"   icon={ArrowRight} items={next}    color="text-sky-400" />
-      <div className="border-t border-slate-800" />
-      <Section title="Disciplinas Futuras"             icon={Layers}     items={future}  color="text-slate-500" />
+      <Section title="◉ Cursando Atualmente" icon={BookOpen} items={current} color="text-violet-400" />
+      {current.length > 0 && (next.length > 0 || future.length > 0) && <div className="border-t border-slate-800" />}
+      
+      <Section title="→ Próximos Passos" icon={ArrowRight} items={next} color="text-sky-400" />
+      {next.length > 0 && future.length > 0 && <div className="border-t border-slate-800" />}
+      
+      <Section title="◌ Disciplinas Futuras" icon={Layers} items={future} color="text-slate-500" />
 
-      <div className="border-t border-slate-800" />
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Layers size={15} className="text-slate-400" />
-          <h3 className="text-sm font-semibold text-slate-400">Arquitetura por Ano Letivo</h3>
+      {!hasAnySubjects && (
+        <div className="text-center py-12">
+          <BookOpen size={40} className="text-slate-700 mx-auto mb-3" />
+          <p className="text-slate-500">Nenhuma disciplina em progresso</p>
         </div>
-        <div className="space-y-4">
-          {termGroups.map(term => (
-            <div key={term.id} className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-widest">{term.label}</p>
-                  <p className="text-sm font-bold text-white">{term.items.length} disciplina{term.items.length !== 1 ? "s" : ""}</p>
-                </div>
-                <span className="text-xs text-slate-500">{term.id}</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                {term.items.map(s => <SubjectCard key={s.id} subject={s} />)}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -677,29 +933,145 @@ function FlowTab({ subjects }) {
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 export default function AcademicDashboard() {
+  // ─── STATE MANAGEMENT ────────────────────────────────────────────────────
   const [tab, setTab] = useState("overview");
   const [faltas, setFaltas] = useState({});
+  const [currentSemester, setCurrentSemester] = useState(5); // Semestre atual
+  const [subjectStatus, setSubjectStatus] = useState({}); // { id -> "done" | "current" | "next" | "future" }
+  const [userName, setUserName] = useState(""); // Nome do utilizador
+  const [userNameInput, setUserNameInput] = useState(""); // Input temporário
 
-  const stats = useMemo(() => {
-    const done    = SUBJECTS.filter(s => s.status === "done").length;
-    const current = SUBJECTS.filter(s => s.status === "current").length;
-    const future  = SUBJECTS.filter(s => s.status !== "done" && s.status !== "current").length;
-    const total   = SUBJECTS.length;
-    return { done, current, future, total, pct: Math.round((done / total) * 100) };
+  // ─── LOAD FROM LOCALSTORAGE ─────────────────────────────────────────────
+  useEffect(() => {
+    const savedSemester = localStorage.getItem("currentSemester");
+    const savedStatus = localStorage.getItem("subjectStatus");
+    const savedFaltas = localStorage.getItem("faltas");
+    const savedUserName = localStorage.getItem("userName");
+
+    if (savedSemester) setCurrentSemester(parseInt(savedSemester));
+    if (savedStatus) {
+      try {
+        setSubjectStatus(JSON.parse(savedStatus));
+      } catch (e) {
+        console.error("Erro ao carregar status das matérias:", e);
+      }
+    }
+    if (savedFaltas) {
+      try {
+        setFaltas(JSON.parse(savedFaltas));
+      } catch (e) {
+        console.error("Erro ao carregar faltas:", e);
+      }
+    }
+    if (savedUserName) {
+      setUserName(savedUserName);
+      setUserNameInput(savedUserName);
+    }
   }, []);
 
-  const doneSubs = SUBJECTS.filter(s => s.status === "done");
-  const alertCount = SUBJECTS.filter(s => {
+  // ─── SAVE TO LOCALSTORAGE ───────────────────────────────────────────────
+  useEffect(() => {
+    localStorage.setItem("currentSemester", currentSemester.toString());
+  }, [currentSemester]);
+
+  useEffect(() => {
+    localStorage.setItem("subjectStatus", JSON.stringify(subjectStatus));
+  }, [subjectStatus]);
+
+  useEffect(() => {
+    localStorage.setItem("faltas", JSON.stringify(faltas));
+  }, [faltas]);
+
+  useEffect(() => {
+    if (userName) {
+      localStorage.setItem("userName", userName);
+    }
+  }, [userName]);
+
+  // ─── HANDLE USER NAME SAVE ──────────────────────────────────────────────
+  const handleUserNameSave = () => {
+    if (userNameInput.trim()) {
+      setUserName(userNameInput.trim());
+    }
+  };
+
+  // ─── HANDLE COMPLETE SEMESTER ───────────────────────────────────────────
+  const handleCompleteSemester = (semesterNum) => {
+    const subjectsInSem = SUBJECTS.filter(s => s.sem === semesterNum);
+    const newStatus = { ...subjectStatus };
+    subjectsInSem.forEach(subject => {
+      newStatus[subject.id] = "done";
+    });
+    setSubjectStatus(newStatus);
+  };
+
+  // ─── HELPER: GET EFFECTIVE STATUS (LOCAL STATE OVER DEFAULT) ───────────
+  const getEffectiveStatus = (subject) => {
+    return subjectStatus[subject.id] || subject.status;
+  };
+
+  // ─── HELPER: CHECK IF PREREQUISITES ARE MET ─────────────────────────────
+  const arePrereqsMet = (subject) => {
+    return subject.prereqs.every(
+      (prereqId) => getEffectiveStatus(SUBJECTS.find((s) => s.id === prereqId)) === "done"
+    );
+  };
+
+  // ─── HELPER: GET UNMET PREREQUISITES ────────────────────────────────────
+  const getUnmetPrereqs = (subject) => {
+    return subject.prereqs
+      .filter((prereqId) => getEffectiveStatus(SUBJECTS.find((s) => s.id === prereqId)) !== "done")
+      .map((prereqId) => SUBJECTS.find((s) => s.id === prereqId));
+  };
+
+  // ─── HELPER: UPDATE SUBJECT STATUS ──────────────────────────────────────
+  const updateSubjectStatus = (subjectId, newStatus) => {
+    const subject = SUBJECTS.find((s) => s.id === subjectId);
+    if (!subject) return;
+
+    // Validação: não pode marcar como "current" ou "next" sem pré-requisitos cumpridos
+    if ((newStatus === "current" || newStatus === "next") && !arePrereqsMet(subject)) {
+      alert(
+        `⚠️ Você não pode marcar '${subject.name}' como '${newStatus === "current" ? "Cursando" : "Próxima"}' sem cumprir os pré-requisitos:\n\n${getUnmetPrereqs(subject)
+          .map((p) => `• ${p.name}`)
+          .join("\n")}`
+      );
+      return;
+    }
+
+    setSubjectStatus((prev) => ({ ...prev, [subjectId]: newStatus }));
+  };
+
+  // ─── CREATE MODIFIED SUBJECTS LIST ──────────────────────────────────────
+  const SUBJECTS_WITH_STATUS = SUBJECTS.map((s) => ({
+    ...s,
+    status: getEffectiveStatus(s),
+  }));
+
+  // ─── STATS CALCULATION ──────────────────────────────────────────────────
+  const stats = useMemo(() => {
+    const done = SUBJECTS_WITH_STATUS.filter((s) => s.status === "done").length;
+    const current = SUBJECTS_WITH_STATUS.filter((s) => s.status === "current").length;
+    const future = SUBJECTS_WITH_STATUS.filter(
+      (s) => s.status !== "done" && s.status !== "current"
+    ).length;
+    const total = SUBJECTS_WITH_STATUS.length;
+    return { done, current, future, total, pct: Math.round((done / total) * 100) };
+  }, [subjectStatus]);
+
+  const doneSubs = SUBJECTS_WITH_STATUS.filter(s => s.status === "done");
+  const alertCount = SUBJECTS_WITH_STATUS.filter(s => {
     if (!ATTENDANCE_META[s.id]) return false;
     const { state } = calcAbsence(ATTENDANCE_META[s.id], faltas[s.id] || 0);
     return state !== "safe";
   }).length;
 
   const TABS = [
-    { id: "overview",  label: "Visão Geral",     icon: BarChart3 },
-    { id: "schedule",  label: "Horário",          icon: Calendar },
-    { id: "absence",   label: "Faltas",           icon: AlertTriangle, badge: alertCount },
-    { id: "flow",      label: "Análise de Fluxo", icon: GitBranch },
+    { id: "overview",    label: "Visão Geral",     icon: BarChart3 },
+    { id: "curriculum",  label: "Matriz",          icon: GraduationCap },
+    { id: "schedule",    label: "Horário",         icon: Calendar },
+    { id: "absence",     label: "Faltas",          icon: AlertTriangle, badge: alertCount },
+    { id: "flow",        label: "Análise de Fluxo", icon: GitBranch },
   ];
 
   return (
@@ -712,12 +1084,52 @@ export default function AcademicDashboard() {
               <GraduationCap size={18} className="text-violet-400" />
               <span className="text-xs font-bold uppercase tracking-widest text-violet-400">Engenharia de Computação · IFMT</span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">Dashboard Acadêmico</h1>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
+              {userName ? `${userName} — Dashboard Acadêmico` : "Dashboard Acadêmico"}
+            </h1>
             <p className="text-slate-500 text-sm mt-0.5">Fluxo curricular · 2026/1</p>
           </div>
-          <div className="text-right">
-            <p className="text-4xl font-black text-violet-400">{stats.pct}%</p>
-            <p className="text-xs text-slate-500">concluído</p>
+          <div className="text-right flex flex-col gap-3">
+            {/* Campos de Configuração */}
+            <div className="space-y-2">
+              {/* Nome do Utilizador */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={userNameInput}
+                  onChange={(e) => setUserNameInput(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleUserNameSave()}
+                  placeholder="Digite seu nome..."
+                  className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-sm placeholder-slate-500 hover:border-violet-500 transition-colors"
+                />
+                <button
+                  onClick={handleUserNameSave}
+                  className="px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium transition-colors"
+                >
+                  ✓
+                </button>
+              </div>
+
+              {/* Seletor de Semestre */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-slate-400 min-w-fit">Semestre:</label>
+                <select
+                  value={currentSemester}
+                  onChange={(e) => setCurrentSemester(parseInt(e.target.value))}
+                  className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-sm font-medium hover:border-violet-500 transition-colors cursor-pointer"
+                >
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
+                    <option key={sem} value={sem}>{sem}º</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Progresso */}
+            <div>
+              <p className="text-4xl font-black text-violet-400">{stats.pct}%</p>
+              <p className="text-xs text-slate-500">concluído</p>
+            </div>
           </div>
         </div>
 
@@ -741,8 +1153,8 @@ export default function AcademicDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard icon={CheckCircle2} label="Concluídas" value={stats.done}    color="emerald" />
           <StatCard icon={BookOpen}     label="Cursando"   value={stats.current} color="violet" />
-          <StatCard icon={Star}         label="Próximas"   value={SUBJECTS.filter(s=>s.status==="next").length}   color="sky" />
-          <StatCard icon={Clock}        label="Futuras"    value={SUBJECTS.filter(s=>s.status==="future").length} color="slate" />
+          <StatCard icon={Star}         label="Próximas"   value={SUBJECTS_WITH_STATUS.filter(s=>s.status==="next").length}   color="sky" />
+          <StatCard icon={Clock}        label="Futuras"    value={SUBJECTS_WITH_STATUS.filter(s=>s.status==="future").length} color="slate" />
         </div>
 
         <details className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
@@ -776,15 +1188,50 @@ export default function AcademicDashboard() {
             ))}
           </div>
           <div className="p-5">
-            {tab === "overview" && <OverviewTab subjects={SUBJECTS} />}
-            {tab === "schedule" && <ScheduleTab />}
-            {tab === "absence"  && <AbsenceTab subjects={SUBJECTS} faltas={faltas} setFaltas={setFaltas} />}
-            {tab === "flow"     && <FlowTab subjects={SUBJECTS} />}
+            {tab === "overview"   && <OverviewTab subjects={SUBJECTS_WITH_STATUS} />}
+            {tab === "curriculum" && <CurriculumTab subjects={SUBJECTS_WITH_STATUS} getEffectiveStatus={getEffectiveStatus} updateSubjectStatus={updateSubjectStatus} getUnmetPrereqs={getUnmetPrereqs} arePrereqsMet={arePrereqsMet} onCompleteSemester={handleCompleteSemester} />}
+            {tab === "schedule"   && <ScheduleTab />}
+            {tab === "absence"    && <AbsenceTab subjects={SUBJECTS_WITH_STATUS} faltas={faltas} setFaltas={setFaltas} />}
+            {tab === "flow"       && <FlowTab subjects={SUBJECTS_WITH_STATUS} />}
           </div>
         </div>
 
-        <p className="text-center text-xs text-slate-700 pb-4">GIDEON Academic · João Heitor · ENC 2026/1</p>
+        <p className="text-center text-xs text-slate-700 pb-4">Dashboard Acadêmico · Engenharia da Computação · IFMT 2026</p>
       </div>
     </div>
   );
+}
+
+
+import { useSuapData } from "../../hooks/useSuapData";
+
+export default function AcademicDashboard() {
+  const [tab, setTab] = useState("overview");
+
+  const {
+    faltas,
+    setFaltas,
+    atualizadoEm,
+    loaded,
+    error: suapError,
+  } = useSuapData();
+
+  
+  if (!loaded) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <p className="text-slate-400 text-sm animate-pulse">Carregando dados...</p>
+      </div>
+    );
+  }
+
+{atualizadoEm && (
+  <p className="text-xs text-violet-700 mt-1 flex items-center gap-1">
+    <span className="w-1.5 h-1.5 rounded-full bg-violet-500 inline-block" />
+    Dados SUAP · {new Date(atualizadoEm).toLocaleString("pt-BR")}
+  </p>
+)}
+{suapError && (
+  <p className="text-xs text-amber-600 mt-1">⚠ {suapError}</p>
+)}
 }
