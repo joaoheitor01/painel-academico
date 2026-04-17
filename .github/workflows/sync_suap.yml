@@ -1,0 +1,54 @@
+name: Sync SUAP
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+    - cron: "0 15 * * *"
+    - cron: "0 20 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-boletim:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install selenium beautifulsoup4 webdriver-manager requests
+
+      - name: Sync boletim from SUAP
+        env:
+          SUAP_USER: ${{ secrets.SUAP_USER }}
+          SUAP_PASS: ${{ secrets.SUAP_PASS }}
+        run: |
+          python suap_sync.py --out src/data/boletim.json
+
+      - name: Commit and push if boletim changed
+        run: |
+          if git diff --quiet -- src/data/boletim.json; then
+            echo "Nenhuma mudança em src/data/boletim.json"
+            exit 0
+          fi
+
+          TIMESTAMP=$(TZ=America/Cuiaba date '+%Y-%m-%d %H:%M')
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/boletim.json
+          git commit -m "chore: sync boletim [$TIMESTAMP]"
+          git push origin HEAD:gh-pages
