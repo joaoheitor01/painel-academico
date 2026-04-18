@@ -96,10 +96,12 @@ async function getGrades() {
   let cookies = '';
 
   const loginPageRes = await fetchWithCookies(`${SUAP_BASE}/accounts/login/`, 'GET', null, null, null);
+  console.log("Status login page:", loginPageRes.response.status);
   const loginPageHtml = await loginPageRes.response.text();
   const csrfToken = extractCsrfToken(loginPageHtml);
 
   if (!csrfToken) {
+    console.log("ERRO: CSRF token not found");
     throw new Error('CSRF token not found');
   }
 
@@ -120,6 +122,9 @@ async function getGrades() {
     csrfToken
   );
 
+  console.log("Status após login:", loginRes.response.status);
+  console.log("Headers após login:", JSON.stringify([...loginRes.response.headers]));
+
   cookies = loginRes.cookies;
 
   if (loginRes.response.status === 302) {
@@ -137,6 +142,9 @@ async function getGrades() {
     cookies,
     csrfToken
   );
+
+  console.log("Status boletim:", gradesRes.response.status);
+  console.log("URL final:", gradesRes.response.url);
 
   const gradesHtml = await gradesRes.response.text();
   const rows = parseGradeTable(gradesHtml);
@@ -196,12 +204,16 @@ async function handleRequest(request) {
     });
   }
 
+  console.log("Worker iniciado");
+
   try {
     const result = await getGrades();
+    console.log("Disciplinas encontradas:", disciplinas.length);
     return new Response(JSON.stringify(result), {
       headers: { 'Content-Type' : 'application/json' },
     });
   } catch (error) {
+    console.log("ERRO:", error.message, error.stack);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
