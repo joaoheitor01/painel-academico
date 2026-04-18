@@ -1,6 +1,6 @@
 // src/hooks/useSuapData.js
 //
-// Lê src/data/boletim.json (gerado pelo suap_sync.py)
+// Lê public/data/boletim.json (gerado pelo suap_sync.py)
 // e devolve os dados prontos para o AcademicDashboard.
 //
 // Uso no AcademicDashboard.jsx:
@@ -16,19 +16,19 @@ export function useSuapData() {
   const [loaded,       setLoaded]       = useState(false);
   const [error,        setError]        = useState(null);
 
-  useEffect(() => {
-    // Vite expõe arquivos em /src/data/ via import dinâmico
-    import("../data/boletim.json")
-      .then((mod) => {
-        const data = mod.default ?? mod;
+useEffect(() => {
+    fetch("/painel-academico/data/boletim.json")
+      .then((res) => {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then((data) => {
         setFaltas(data.faltas       ?? {});
         setDisciplinas(data.disciplinas ?? []);
         setAtualizadoEm(data.atualizadoEm ?? null);
         setLoaded(true);
       })
       .catch((err) => {
-        // Arquivo não existe ainda → dashboard funciona normalmente
-        // com os valores manuais
         console.warn("[useSuapData] boletim.json não encontrado:", err.message);
         setError("boletim.json não encontrado — use valores manuais.");
         setLoaded(true);

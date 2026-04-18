@@ -25,68 +25,66 @@ import {
 
 const SUBJECTS = [
   { id: "ENC-01", name: "Fundamentos da Matematica", sem: 1, status: "done", academicTerm: "2024/1", prereqs: [] },
-  { id: "ENC-02", name: "Algoritmos I", sem: 1, status: "done", academicTerm: "2024/1", prereqs: [] },
-  { id: "ENC-03", name: "Introducao a Engenharia da Computacao", sem: 1, status: "done", academicTerm: "2024/1", prereqs: [] },
-  { id: "ENC-04", name: "Desenho Tecnico em Ambiente Computacional", sem: 1, status: "done", academicTerm: "2024/1", prereqs: [] },
-  { id: "ENC-05", name: "Quimica Geral e Ciencia dos Materiais", sem: 1, status: "done", academicTerm: "2024/1", prereqs: [] },
-  { id: "ENC-16", name: "Calculo Vetorial e Geometria Analitica", sem: 3, status: "done", academicTerm: "2024/1", prereqs: ["ENC-07"] },
-  { id: "ENC-27", name: "Economia", sem: 4, status: "done", academicTerm: "2024/1", prereqs: [] },
+  { id: "ENC-02", name: "Desenho Tecnico em Ambiente Computacional", sem: 1, status: "done", academicTerm: "2024/1", prereqs: [] },
+  { id: "ENC-03", name: "Calculo Vetorial e Geometria Analitica", sem: 1, status: "done", academicTerm: "2024/1", prereqs: ["ENC-01"] },
+  { id: "ENC-04", name: "Quimica Geral e Ciencia dos Materiais", sem: 1, status: "done", academicTerm: "2024/1", prereqs: [] },
+  { id: "ENC-05", name: "Introducao a Engenharia da Computacao", sem: 1, status: "done", academicTerm: "2024/1", prereqs: [] },
+  { id: "ENC-06", name: "Algoritmos I", sem: 1, status: "done", academicTerm: "2024/1", prereqs: [] },
+  { id: "ENC-07", name: "Economia", sem: 1, status: "done", academicTerm: "2024/1", prereqs: [] },
 
+  { id: "ENC-08", name: "Calculo Diferencial e Integral I", sem: 2, status: "done", academicTerm: "2024/2", prereqs: ["ENC-01", "ENC-03"] },
   { id: "ENC-09", name: "Fisica Geral e Experimental I", sem: 2, status: "done", academicTerm: "2024/2", prereqs: ["ENC-01"] },
-  { id: "ENC-25", name: "Arquitetura e Organizacao de Computadores", sem: 4, status: "done", academicTerm: "2024/2", prereqs: ["ENC-03"] },
-  { id: "ENC-08", name: "Algoritmos II", sem: 2, status: "done", academicTerm: "2024/2", prereqs: ["ENC-02"] },
-  { id: "ENC-28", name: "Ciencias do Ambiente", sem: 4, status: "done", academicTerm: "2024/2", prereqs: ["ENC-05"] },
-  { id: "ENC-26", name: "Eletronica Digital", sem: 4, status: "done", academicTerm: "2024/2", prereqs: ["ENC-09"] },
+  { id: "ENC-10", name: "Algebra Linear", sem: 2, status: "done", academicTerm: "2024/2", prereqs: ["ENC-03"] },
+  { id: "ENC-11", name: "Metodologia Cientifica", sem: 2, status: "done", academicTerm: "2024/2", prereqs: [] },
+  { id: "ENC-12", name: "Arquitetura e Organizacao de Computadores", sem: 2, status: "done", academicTerm: "2024/2", prereqs: ["ENC-05"] },
+  { id: "ENC-13", name: "Algoritmos II", sem: 2, status: "done", academicTerm: "2024/2", prereqs: ["ENC-06"] },
+  { id: "ENC-14", name: "Ciencias do Ambiente", sem: 2, status: "done", academicTerm: "2024/2", prereqs: ["ENC-04"] },
 
-  { id: "ENC-06", name: "Metodologia Cientifica (Refeita)", sem: 1, status: "done", academicTerm: "2025/1", tags: ["Refeita"], prereqs: [] },
-  { id: "ENC-07", name: "Calculo Diferencial e Integral I (Refeita)", sem: 2, status: "done", academicTerm: "2025/1", tags: ["Refeita"], prereqs: ["ENC-01"] },
-  { id: "ENC-23", name: "Algebra Linear", sem: 4, status: "done", academicTerm: "2025/1", prereqs: ["ENC-16"] },
-  { id: "ENC-15", name: "Fisica Geral e Experimental II", sem: 3, status: "done", academicTerm: "2025/1", prereqs: ["ENC-07", "ENC-09"] },
-  { id: "ENC-31", name: "Sistemas Operacionais", sem: 5, status: "done", academicTerm: "2025/1", prereqs: ["ENC-25"] },
-  { id: "ENC-11", name: "Introducao a Extensao", sem: 2, status: "done", academicTerm: "2025/1", prereqs: [] },
-  { id: "ENC-14", name: "Estruturas de Dados", sem: 3, status: "done", academicTerm: "2025/1", prereqs: ["ENC-08"] },
+  { id: "ENC-15", name: "Calculo Diferencial e Integral II", sem: 3, status: "done", academicTerm: "2025/1", prereqs: ["ENC-08"] },
+  { id: "ENC-16", name: "Fisica Geral e Experimental II", sem: 3, status: "done", academicTerm: "2025/1", prereqs: ["ENC-08", "ENC-09"] },
+  { id: "ENC-17", name: "Eletronica Digital", sem: 3, status: "done", academicTerm: "2025/1", prereqs: ["ENC-09"] },
+  { id: "ENC-18", name: "Introducao a Extensao", sem: 3, status: "done", academicTerm: "2025/1", prereqs: [] },
+  { id: "ENC-19", name: "Estruturas de Dados", sem: 3, status: "done", academicTerm: "2025/1", prereqs: ["ENC-13"] },
+  { id: "ENC-20", name: "Probabilidade e Estatistica", sem: 3, status: "done", academicTerm: "2025/1", prereqs: ["ENC-01"] },
 
-  { id: "ENC-13", name: "Calculo Diferencial e Integral II", sem: 3, status: "done", academicTerm: "2025/2", prereqs: ["ENC-07"] },
-  { id: "ENC-20", name: "Programacao Orientada a Objetos", sem: 4, status: "done", academicTerm: "2025/2", prereqs: ["ENC-14"] },
-  { id: "ENC-19", name: "Banco de Dados", sem: 4, status: "done", academicTerm: "2025/2", prereqs: ["ENC-14"] },
-  { id: "ENC-21", name: "Fisica Geral e Experimental III", sem: 4, status: "done", academicTerm: "2025/2", prereqs: ["ENC-13", "ENC-15"] },
-  { id: "ENC-17", name: "Matematica Discreta e Teoria dos Grafos", sem: 3, status: "done", academicTerm: "2025/2", prereqs: ["ENC-08"] },
-  { id: "ENC-35", name: "Circuitos Eletricos I", sem: 6, status: "done", academicTerm: "2025/2", prereqs: ["ENC-21", "ENC-22"] },
-  { id: "ENC-36", name: "Transmissao e Comunicacao de Dados", sem: 6, status: "done", academicTerm: "2025/2", prereqs: ["ENC-31", "ENC-10"] },
-  { id: "ENC-10", name: "Probabilidade e Estatistica", sem: 2, status: "done", academicTerm: "2025/2", tags: ["Extracurricular"], prereqs: ["ENC-01"] },
-  { id: "ENC-18", name: "Saude e Seguranca do Trabalho", sem: 3, status: "done", academicTerm: "2025/2", tags: ["Extracurricular"], prereqs: [] },
-  { id: "ENC-12", name: "Etica Profissional", sem: 2, status: "done", academicTerm: "2025/2", tags: ["Cumprida"], prereqs: [] },
+  { id: "ENC-21", name: "Equacoes Diferenciais", sem: 4, status: "current", academicTerm: "2025/2", prereqs: ["ENC-15"] },
+  { id: "ENC-22", name: "Fisica Geral e Experimental III", sem: 4, status: "current", academicTerm: "2025/2", prereqs: ["ENC-15", "ENC-16"] },
+  { id: "ENC-23", name: "Calculo Numerico", sem: 4, status: "current", academicTerm: "2025/2", prereqs: ["ENC-15", "ENC-10"] },
+  { id: "ENC-24", name: "Banco de Dados", sem: 4, status: "done", academicTerm: "2025/2", prereqs: ["ENC-19"] },
+  { id: "ENC-25", name: "Programacao Orientada a Objetos", sem: 4, status: "done", academicTerm: "2025/2", prereqs: ["ENC-19"] },
+  { id: "ENC-26", name: "Matematica Discreta e Teoria dos Grafos", sem: 4, status: "done", academicTerm: "2025/2", prereqs: ["ENC-13"] },
+  { id: "ENC-27", name: "Transmissao e Comunicacao de Dados", sem: 4, status: "done", academicTerm: "2025/2", prereqs: ["ENC-12"] },
 
-  { id: "ENC-24", name: "Calculo Numerico", sem: 5, status: "current", academicTerm: "2026/1", prereqs: ["ENC-13", "ENC-23"] },
-  { id: "ENC-22", name: "Equacoes Diferenciais", sem: 5, status: "current", academicTerm: "2026/1", prereqs: ["ENC-13"] },
-  { id: "ENC-34", name: "Engenharia de Software", sem: 5, status: "current", academicTerm: "2026/1", prereqs: ["ENC-19", "ENC-20"] },
-  { id: "ENC-30", name: "Programacao WEB", sem: 5, status: "current", academicTerm: "2026/1", prereqs: ["ENC-19", "ENC-20"] },
-  { id: "ENC-29", name: "Compiladores", sem: 5, status: "current", academicTerm: "2026/1", prereqs: ["ENC-14"] },
-  { id: "ENC-32", name: "Laboratorio de Circuitos Eletricos I", sem: 5, status: "current", academicTerm: "2026/1", prereqs: ["ENC-21", "ENC-22"] },
-  { id: "ENC-33", name: "Extensao I", sem: 5, status: "current", academicTerm: "2026/1", prereqs: ["ENC-11"] },
+  { id: "ENC-28", name: "Etica Profissional", sem: 5, status: "done", academicTerm: "2026/1", prereqs: [] },
+  { id: "ENC-29", name: "Circuitos Eletricos I", sem: 5, status: "done", academicTerm: "2026/1", prereqs: ["ENC-16"] },
+  { id: "ENC-30", name: "Laboratorio de Circuitos Eletricos I", sem: 5, status: "current", academicTerm: "2026/1", prereqs: ["ENC-29"] },
+  { id: "ENC-31", name: "Engenharia de Software", sem: 5, status: "current", academicTerm: "2026/1", prereqs: ["ENC-24", "ENC-25"] },
+  { id: "ENC-32", name: "Programacao WEB", sem: 5, status: "current", academicTerm: "2026/1", prereqs: ["ENC-24", "ENC-25"] },
+  { id: "ENC-33", name: "Compiladores", sem: 5, status: "current", academicTerm: "2026/1", prereqs: ["ENC-19"] },
+  { id: "ENC-34", name: "Extensao I", sem: 5, status: "current", academicTerm: "2026/1", prereqs: ["ENC-18"] },
 
-  { id: "ENC-37", name: "Analise e Projeto de Sistemas Computacionais", sem: 6, status: "next", academicTerm: "2026/2", prereqs: ["ENC-34"] },
-  { id: "ENC-38", name: "Extensao II", sem: 6, status: "next", academicTerm: "2026/2", prereqs: ["ENC-33"] },
+  { id: "ENC-35", name: "Laboratorio de Circuitos Eletricos II", sem: 6, status: "future", academicTerm: "2026/2", prereqs: ["ENC-30"] },
+  { id: "ENC-36", name: "Sinais e Sistemas Lineares", sem: 6, status: "future", academicTerm: "2026/2", prereqs: ["ENC-21"] },
+  { id: "ENC-37", name: "Circuitos Eletricos II", sem: 6, status: "future", academicTerm: "2026/2", prereqs: ["ENC-29"] },
+  { id: "ENC-38", name: "Eletronica Analogica I", sem: 6, status: "future", academicTerm: "2026/2", prereqs: ["ENC-17", "ENC-29"] },
+  { id: "ENC-39", name: "Analise e Projeto de Sistemas Computacionais", sem: 6, status: "future", academicTerm: "2026/2", prereqs: ["ENC-31"] },
+  { id: "ENC-40", name: "Inteligencia Artificial", sem: 6, status: "future", academicTerm: "2026/2", prereqs: ["ENC-19", "ENC-20"] },
+  { id: "ENC-41", name: "Extensao II", sem: 6, status: "future", academicTerm: "2026/2", prereqs: ["ENC-34"] },
 
-  { id: "ENC-39", name: "Circuitos Eletricos II", sem: 7, status: "future", academicTerm: "2027/1", prereqs: ["ENC-35"] },
-  { id: "ENC-40", name: "Eletronica Analogica I", sem: 7, status: "future", academicTerm: "2027/1", prereqs: ["ENC-35"] },
-  { id: "ENC-41", name: "Sinais e Sistemas Lineares", sem: 7, status: "future", academicTerm: "2027/1", prereqs: ["ENC-35"] },
-  { id: "ENC-42", name: "Redes de Computadores", sem: 7, status: "future", academicTerm: "2027/1", prereqs: ["ENC-36"] },
-  { id: "ENC-43", name: "Inteligencia Artificial", sem: 7, status: "future", academicTerm: "2027/1", prereqs: ["ENC-14", "ENC-10"] },
-  { id: "ENC-44", name: "Extensao III", sem: 7, status: "future", academicTerm: "2027/1", prereqs: ["ENC-38"] },
+  { id: "ENC-42", name: "Controle de Sistemas I", sem: 7, status: "future", academicTerm: "2027/1", prereqs: ["ENC-36"] },
+  { id: "ENC-43", name: "Microcontroladores", sem: 7, status: "future", academicTerm: "2027/1", prereqs: ["ENC-17", "ENC-37"] },
+  { id: "ENC-44", name: "Redes de Computadores", sem: 7, status: "future", academicTerm: "2027/1", prereqs: ["ENC-27"] },
+  { id: "ENC-45", name: "Mineracao de Dados", sem: 7, status: "future", academicTerm: "2027/1", prereqs: ["ENC-20", "ENC-24"] },
+  { id: "ENC-46", name: "Seguranca de Sistemas", sem: 7, status: "future", academicTerm: "2027/1", prereqs: ["ENC-44"] },
+  { id: "ENC-47", name: "Eletronica Analogica II", sem: 7, status: "future", academicTerm: "2027/1", prereqs: ["ENC-38"] },
+  { id: "ENC-48", name: "Extensao III", sem: 7, status: "future", academicTerm: "2027/1", prereqs: ["ENC-41"] },
 
-  { id: "ENC-45", name: "Eletronica Analogica II", sem: 8, status: "future", academicTerm: "2027/2", prereqs: ["ENC-40"] },
-  { id: "ENC-46", name: "Processamento Digital de Sinais", sem: 8, status: "future", academicTerm: "2027/2", prereqs: ["ENC-41"] },
-  { id: "ENC-47", name: "Sistemas Embarcados", sem: 8, status: "future", academicTerm: "2027/2", prereqs: ["ENC-39", "ENC-31"] },
-  { id: "ENC-48", name: "Seguranca Computacional", sem: 8, status: "future", academicTerm: "2027/2", prereqs: ["ENC-42"] },
-  { id: "ENC-49", name: "Extensao IV", sem: 8, status: "future", academicTerm: "2027/2", prereqs: ["ENC-44"] },
-
-  { id: "ENC-50", name: "Projeto Integrador I", sem: 9, status: "future", academicTerm: "2028/1", prereqs: ["ENC-37", "ENC-43"] },
-  { id: "ENC-51", name: "Visao Computacional", sem: 9, status: "future", academicTerm: "2028/1", prereqs: ["ENC-43"] },
-  { id: "ENC-52", name: "Internet das Coisas", sem: 9, status: "future", academicTerm: "2028/1", prereqs: ["ENC-47", "ENC-42"] },
-  { id: "ENC-53", name: "Extensao V", sem: 9, status: "future", academicTerm: "2028/1", prereqs: ["ENC-49"] },
-
-  { id: "ENC-54", name: "Trabalho de Conclusao de Curso", sem: 10, status: "future", academicTerm: "2028/2", prereqs: ["ENC-50"] },
+  { id: "ENC-49", name: "Processamento Digital de Sinais", sem: 8, status: "future", academicTerm: "2027/2", prereqs: ["ENC-36", "ENC-46"] },
+  { id: "ENC-50", name: "Trabalho de Conclusao de Curso", sem: 8, status: "future", academicTerm: "2027/2", prereqs: ["ENC-39", "ENC-40"] },
+  { id: "ENC-51", name: "Administracao", sem: 8, status: "future", academicTerm: "2027/2", prereqs: ["ENC-07"] },
+  { id: "ENC-52", name: "Projeto de Sistemas Inteligentes", sem: 8, status: "future", academicTerm: "2027/2", prereqs: ["ENC-40", "ENC-45"] },
+  { id: "ENC-53", name: "Eletiva", sem: 8, status: "future", academicTerm: "2027/2", prereqs: [] },
+  { id: "ENC-54", name: "Seguranca do Trabalho", sem: 8, status: "done", academicTerm: "2027/2", prereqs: [] },
 ];
 
 const ACADEMIC_TERMS = [
@@ -103,13 +101,14 @@ const ACADEMIC_TERMS = [
 ];
 
 const ATTENDANCE_META = {
-  "ENC-34": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Eng. Software" },
-  "ENC-33": { cargaHoraria: 60, aulasPorDia: 3, shortName: "Extensao I" },
-  "ENC-29": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Compiladores" },
-  "ENC-32": { cargaHoraria: 40, aulasPorDia: 2, shortName: "Lab. Circuitos I" },
-  "ENC-30": { cargaHoraria: 60, aulasPorDia: 3, shortName: "Prog. WEB" },
-  "ENC-24": { cargaHoraria: 60, aulasPorDia: 2, shortName: "Calculo Numerico" },
-  "ENC-22": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Eq. Diferenciais" },
+  "ENC-21": { cargaHoraria: 60, aulasPorDia: 3, shortName: "Eq. Diferenciais" },
+  "ENC-22": { cargaHoraria: 60, aulasPorDia: 3, shortName: "Fisica III" },
+  "ENC-23": { cargaHoraria: 60, aulasPorDia: 3, shortName: "Calculo Numerico" },
+  "ENC-31": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Eng. Software" },
+  "ENC-32": { cargaHoraria: 60, aulasPorDia: 3, shortName: "Prog. WEB" },
+  "ENC-33": { cargaHoraria: 60, aulasPorDia: 3, shortName: "Compiladores" },
+  "ENC-34": { cargaHoraria: 30, aulasPorDia: 2, shortName: "Extensao I" },
+  "ENC-30": { cargaHoraria: 30, aulasPorDia: 2, shortName: "Lab. Circuitos I" },
 };
 
 const toMin = (hour, minute) => hour * 60 + minute;
@@ -123,71 +122,51 @@ const SCHEDULE = [
     day: "Segunda",
     dayShort: "SEG",
     blocks: [
-      { id: "ENC-34", name: "Engenharia de Software", start: toMin(13, 0), end: toMin(16, 40), aulas: 4 },
-      {
-        id: "ENC-33",
-        name: "Extensao I",
-        start: toMin(16, 40),
-        end: toMin(19, 40),
-        aulas: 3,
-        intervals: [{ start: toMin(18, 20), end: toMin(18, 50) }],
-      },
+      { id: "ENC-31", name: "Engenharia de Software", start: toMin(13, 0), end: toMin(16, 40), aulas: 4 },
+      { id: "ENC-34", name: "Extensao I", start: toMin(16, 40), end: toMin(19, 40), aulas: 3, intervals: [{ start: toMin(18, 20), end: toMin(18, 50) }] },
     ],
   },
   {
     day: "Terca",
     dayShort: "TER",
     blocks: [
-      { id: "ENC-29", name: "Compiladores", start: toMin(13, 0), end: toMin(16, 40), aulas: 4 },
-      {
-        id: "ENC-33",
-        name: "Extensao I",
-        start: toMin(16, 40),
-        end: toMin(19, 40),
-        aulas: 3,
-        intervals: [{ start: toMin(18, 20), end: toMin(18, 50) }],
-      },
+      { id: "ENC-33", name: "Compiladores", start: toMin(13, 0), end: toMin(16, 40), aulas: 4 },
+      { id: "ENC-34", name: "Extensao I", start: toMin(16, 40), end: toMin(19, 40), aulas: 3, intervals: [{ start: toMin(18, 20), end: toMin(18, 50) }] },
     ],
   },
   {
     day: "Quarta",
     dayShort: "QUA",
-    blocks: [{ id: "ENC-32", name: "Lab. Circuitos I", start: toMin(13, 0), end: toMin(14, 40), aulas: 2 }],
+    blocks: [{ id: "ENC-30", name: "Lab. Circuitos I", start: toMin(13, 0), end: toMin(14, 40), aulas: 2 }],
   },
   {
     day: "Quinta",
     dayShort: "QUI",
     blocks: [
-      { id: "ENC-30", name: "Prog. WEB", start: toMin(13, 0), end: toMin(13, 50), aulas: 1 },
-      { id: "ENC-24", name: "Calculo Numerico", start: toMin(13, 50), end: toMin(15, 30), aulas: 2 },
-      { id: "ENC-30", name: "Prog. WEB", start: toMin(15, 50), end: toMin(17, 30), aulas: 2 },
+      { id: "ENC-32", name: "Prog. WEB", start: toMin(13, 0), end: toMin(13, 50), aulas: 1 },
+      { id: "ENC-23", name: "Calculo Numerico", start: toMin(13, 50), end: toMin(15, 30), aulas: 2 },
+      { id: "ENC-32", name: "Prog. WEB", start: toMin(15, 50), end: toMin(17, 30), aulas: 2 },
     ],
   },
   {
     day: "Sexta",
     dayShort: "SEX",
     blocks: [
-      { id: "ENC-24", name: "Calculo Numerico", start: toMin(13, 0), end: toMin(14, 40), aulas: 2 },
-      {
-        id: "ENC-22",
-        name: "Eq. Diferenciais",
-        start: toMin(18, 50),
-        end: toMin(22, 25),
-        aulas: 4,
-        intervals: [{ start: toMin(20, 30), end: toMin(20, 45) }],
-      },
+      { id: "ENC-23", name: "Calculo Numerico", start: toMin(13, 0), end: toMin(14, 40), aulas: 2 },
+      { id: "ENC-21", name: "Eq. Diferenciais", start: toMin(18, 50), end: toMin(22, 25), aulas: 4, intervals: [{ start: toMin(20, 30), end: toMin(20, 45) }] },
     ],
   },
 ];
 
 const SUBJECT_COLORS = {
-  "ENC-34": { bg: "bg-violet-600", border: "border-violet-500", text: "text-violet-100", dot: "bg-violet-400", light: "bg-violet-500/15" },
-  "ENC-33": { bg: "bg-teal-600", border: "border-teal-500", text: "text-teal-100", dot: "bg-teal-400", light: "bg-teal-500/15" },
-  "ENC-29": { bg: "bg-orange-600", border: "border-orange-500", text: "text-orange-100", dot: "bg-orange-400", light: "bg-orange-500/15" },
-  "ENC-32": { bg: "bg-pink-600", border: "border-pink-500", text: "text-pink-100", dot: "bg-pink-400", light: "bg-pink-500/15" },
-  "ENC-30": { bg: "bg-sky-600", border: "border-sky-500", text: "text-sky-100", dot: "bg-sky-400", light: "bg-sky-500/15" },
-  "ENC-24": { bg: "bg-amber-600", border: "border-amber-500", text: "text-amber-100", dot: "bg-amber-400", light: "bg-amber-500/15" },
-  "ENC-22": { bg: "bg-rose-600", border: "border-rose-500", text: "text-rose-100", dot: "bg-rose-400", light: "bg-rose-500/15" },
+  "ENC-21": { bg: "bg-rose-600", border: "border-rose-500", text: "text-rose-100", dot: "bg-rose-400", light: "bg-rose-500/15" },
+  "ENC-22": { bg: "bg-cyan-600", border: "border-cyan-500", text: "text-cyan-100", dot: "bg-cyan-400", light: "bg-cyan-500/15" },
+  "ENC-23": { bg: "bg-amber-600", border: "border-amber-500", text: "text-amber-100", dot: "bg-amber-400", light: "bg-amber-500/15" },
+  "ENC-31": { bg: "bg-violet-600", border: "border-violet-500", text: "text-violet-100", dot: "bg-violet-400", light: "bg-violet-500/15" },
+  "ENC-32": { bg: "bg-sky-600", border: "border-sky-500", text: "text-sky-100", dot: "bg-sky-400", light: "bg-sky-500/15" },
+  "ENC-33": { bg: "bg-orange-600", border: "border-orange-500", text: "text-orange-100", dot: "bg-orange-400", light: "bg-orange-500/15" },
+  "ENC-34": { bg: "bg-teal-600", border: "border-teal-500", text: "text-teal-100", dot: "bg-teal-400", light: "bg-teal-500/15" },
+  "ENC-30": { bg: "bg-pink-600", border: "border-pink-500", text: "text-pink-100", dot: "bg-pink-400", light: "bg-pink-500/15" },
 };
 
 const STATUS = {
@@ -226,8 +205,16 @@ function clampPercentage(value) {
 function calcAbsence(meta, faltas) {
   const cargaHoraria = Number(meta?.cargaHoraria) || 0;
   const aulasPorDia = Math.max(1, Number(meta?.aulasPorDia) || 1);
+  const totalAulas = Number(meta?.totalAulas) || 0;
   const faltasAtuais = Math.max(0, Number(faltas) || 0);
-  const limite = Math.max(0, Math.floor(cargaHoraria * 0.25));
+
+  let limite;
+  if (totalAulas > 0) {
+    limite = Math.max(0, Math.floor(totalAulas * 0.25));
+  } else {
+    limite = Math.max(0, Math.floor(cargaHoraria * 1.2 * 0.25));
+  }
+
   const restam = limite - faltasAtuais;
   const diasRestantes = restam <= 0 ? 0 : Math.floor(restam / aulasPorDia);
   const pct = limite > 0 ? clampPercentage(Math.round((faltasAtuais / limite) * 100)) : 0;
@@ -381,6 +368,7 @@ function buildSuapAttendanceOverrides(disciplinas, fallbackMeta = {}) {
 
     acc[subjectId] = {
       cargaHoraria: cargaHoraria > 0 ? cargaHoraria : fallbackMeta[subjectId]?.cargaHoraria ?? 0,
+      totalAulas: totalAulas > 0 ? totalAulas : undefined,
       aulasPorDia,
       shortName: fallbackMeta[subjectId]?.shortName ?? item?.disciplina ?? item?.nome ?? subjectId,
     };
@@ -817,15 +805,27 @@ function AbsenceTab({
   );
 }
 
-function OverviewTab({ subjects, currentSemester }) {
+function OverviewTab({ subjects, currentSemester, faltas }) {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const dayNames = ["Domingo", "Segunda", "Terca", "Quarta", "Quinta", "Sexta", "Sabado"];
+  const todayName = dayNames[dayOfWeek];
+  const todayDate = today.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
+
+  const daySchedule = {
+    1: [{ id: "ENC-31", name: "Engenharia de Software", start: "13:00 - 16:40" }, { id: "ENC-34", name: "Extensao I", start: "16:40 - 19:40" }],
+    2: [{ id: "ENC-33", name: "Compiladores", start: "13:00 - 16:40" }, { id: "ENC-34", name: "Extensao I", start: "16:40 - 19:40" }],
+    3: [{ id: "ENC-30", name: "Lab. Circuitos I", start: "13:00 - 14:40" }],
+    4: [{ id: "ENC-32", name: "Prog. WEB", start: "13:00 - 13:50" }, { id: "ENC-23", name: "Calculo Numerico", start: "13:50 - 15:30" }, { id: "ENC-32", name: "Prog. WEB", start: "15:50 - 17:30" }],
+    5: [{ id: "ENC-23", name: "Calculo Numerico", start: "13:00 - 14:40" }, { id: "ENC-21", name: "Eq. Diferenciais", start: "18:50 - 22:25" }],
+  };
+
+  const todayClasses = daySchedule[dayOfWeek] || [];
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
   const current = subjects.filter((subject) => subject.status === "current");
   const next = subjects.filter((subject) => subject.status === "next");
-  const future = subjects.filter((subject) => subject.status === "future");
   const currentSemesterLabel = ACADEMIC_TERMS.find((term) => term.id === currentSemester)?.label || currentSemester;
-  const termGroups = ACADEMIC_TERMS.map((term) => ({
-    ...term,
-    items: subjects.filter((subject) => subject.academicTerm === term.id && subject.status !== "done"),
-  })).filter((term) => term.items.length > 0);
 
   const Section = ({ title, icon: Icon, items, color }) => (
     <div>
@@ -849,41 +849,40 @@ function OverviewTab({ subjects, currentSemester }) {
 
   return (
     <div className="space-y-8">
-      <Section title={`Cursando Atualmente · ${currentSemesterLabel}`} icon={BookOpen} items={current} color="text-violet-400" />
-      <div className="border-t border-slate-800" />
-      <Section title="Proximos Passos" icon={ArrowRight} items={next} color="text-sky-400" />
-      <div className="border-t border-slate-800" />
-      <Section title="Disciplinas Futuras" icon={Layers} items={future} color="text-slate-500" />
-
-      <div className="border-t border-slate-800" />
-      <div>
-        <div className="mb-4 flex items-center gap-2">
-          <Layers size={15} className="text-slate-400" />
-          <h3 className="text-sm font-semibold text-slate-400">Arquitetura por Ano Letivo</h3>
+      <div className="rounded-2xl border border-violet-500/30 bg-violet-950/20 p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-violet-400">Hoje</p>
+            <p className="text-xl font-bold text-white">{todayName} - {todayDate}</p>
+          </div>
+          <Calendar size={32} className="text-violet-400" />
         </div>
-
-        <div className="space-y-4">
-          {termGroups.map((term) => (
-            <div key={term.id} className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-widest text-slate-500">{term.label}</p>
-                  <p className="text-sm font-bold text-white">
-                    {term.items.length} disciplina{term.items.length !== 1 ? "s" : ""}
-                  </p>
+        {isWeekend ? (
+          <p className="mt-3 text-sm text-slate-400">Sem aulas programadas neste dia. Bom descanso!</p>
+        ) : todayClasses.length > 0 ? (
+          <div className="mt-4 space-y-2">
+            {todayClasses.map((cls, idx) => {
+              const meta = ATTENDANCE_META[cls.id];
+              const faltaCount = meta ? (faltas[cls.id] ?? 0) : 0;
+              const limite = meta ? Math.floor(meta.cargaHoraria * 1.2 * 0.25) : 0;
+              return (
+                <div key={idx} className="flex items-center justify-between rounded-lg bg-slate-900/50 p-2">
+                  <div>
+                    <p className="text-sm font-medium text-white">{cls.name}</p>
+                    <p className="text-xs text-slate-500">{cls.start}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-white">{faltaCount} falta{faltaCount !== 1 ? "s" : ""}</p>
+                    <p className="text-xs text-slate-500">limite: {limite}</p>
+                  </div>
                 </div>
-                <span className="text-xs text-slate-500">{term.id}</span>
-              </div>
-
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-                {term.items.map((subject) => (
-                  <SubjectCard key={subject.id} subject={subject} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
+
+      <Section title={`Cursando Atualmente · ${currentSemesterLabel}`} icon={BookOpen} items={current} color="text-violet-400" />
     </div>
   );
 }
@@ -1218,19 +1217,18 @@ export default function AcademicDashboard() {
     });
 
     const filteredBase = baseSubjects.filter((subject) => {
-      const isCurrentSemesterSubject = subject.academicTerm === currentSemester;
-      if (!isCurrentSemesterSubject) return true;
-
       const matchesSuapById = suapKeySet.has(subject.id);
-      const matchesSuapByName = suapKeySet.has(normalizeText(subject.name));
-
-      if (matchesSuapById || matchesSuapByName) return false;
-      if (subject.status !== "current") return true;
-
-      return false;
+      if (matchesSuapById) return false;
+      return true;
     });
 
-    return [...filteredBase, ...normalizedSuapSubjects].sort((a, b) => {
+    const deduplicatedMap = new Map();
+
+    [...filteredBase, ...normalizedSuapSubjects].forEach((subject) => {
+      deduplicatedMap.set(subject.id, subject);
+    });
+
+    return Array.from(deduplicatedMap.values()).sort((a, b) => {
       if (a.sem !== b.sem) return a.sem - b.sem;
       return a.name.localeCompare(b.name, "pt-BR");
     });
@@ -1274,36 +1272,24 @@ export default function AcademicDashboard() {
     });
   };
 
+  const WORKER_URL = "https://suap-sync.painel-academico-2026.workers.dev";
+
   const loadFromSUAP = async () => {
     setIsSyncing(true);
     setSyncError("");
 
     try {
-      const candidateUrls = [
-        "./src/data/boletim.json",
-        `${import.meta.env.BASE_URL}src/data/boletim.json`,
-      ];
+      const response = await fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
 
-      let payload = null;
-      let lastError = null;
-
-      for (const url of candidateUrls) {
-        try {
-          const response = await fetch(url, { cache: "no-store" });
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          payload = await response.json();
-          break;
-        } catch (error) {
-          lastError = error;
-        }
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
       }
 
-      if (!payload) {
-        throw lastError || new Error("Nao foi possivel carregar boletim.json");
-      }
-
+      const payload = await response.json();
       const { disciplinas, faltasMap, atualizadoEm } = normalizeSuapPayload(payload);
       const currentSemesterDisciplines = disciplinas.filter((item) => String(item?.situacao || "").toLowerCase() === "cursando");
       const suapFaltas = {
@@ -1477,7 +1463,7 @@ export default function AcademicDashboard() {
           </div>
 
           <div className="p-5">
-            {tab === "overview" && <OverviewTab subjects={subjects} currentSemester={currentSemester} />}
+            {tab === "overview" && <OverviewTab subjects={subjects} currentSemester={currentSemester} faltas={faltas} />}
             {tab === "curriculum" && (
               <CurriculumTab
                 subjects={subjects}

@@ -36,12 +36,12 @@ jobs:
           SUAP_USER: ${{ secrets.SUAP_USER }}
           SUAP_PASS: ${{ secrets.SUAP_PASS }}
         run: |
-          python suap_sync.py --out src/data/boletim.json
+          python suap_sync.py --out public/data/boletim.json
 
       - name: Commit and push if boletim changed
         run: |
-          if git diff --quiet -- src/data/boletim.json; then
-            echo "Nenhuma mudança em src/data/boletim.json"
+          if git diff --quiet -- public/data/boletim.json; then
+            echo "Nenhuma mudança em public/data/boletim.json"
             exit 0
           fi
 
@@ -49,6 +49,6 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/data/boletim.json
+          git add public/data/boletim.json
           git commit -m "chore: sync boletim [$TIMESTAMP]"
           git push origin HEAD:gh-pages

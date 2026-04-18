@@ -46,13 +46,13 @@ HEADERS = {
 # ── Mapeamento nome → ID do dashboard ─────────────────────────────────────────
 # Ajuste se os nomes das disciplinas mudarem
 NOME_PARA_ID: dict[str, str] = {
-    "Cálculo Numérico":                    "ENC-24",
-    "Compiladores":                        "ENC-29",
-    "Engenharia de Software":              "ENC-34",
-    "Equações Diferenciais":               "ENC-22",
-    "Extensão I":                          "ENC-33",
-    "Laboratório de Circuitos Elétricos I": "ENC-32",
-    "Programação WEB":                     "ENC-30",
+    "Cálculo Numérico":                      "ENC-23",
+    "Compiladores":                          "ENC-33",
+    "Engenharia de Software":                "ENC-31",
+    "Equações Diferenciais":                "ENC-21",
+    "Extensão I":                            "ENC-34",
+    "Laboratório de Circuitos Elétricos I": "ENC-30",
+    "Programação WEB":                      "ENC-32",
 }
 
 
@@ -220,8 +220,8 @@ def main():
     p.add_argument("--usuario", "-u", default=None)
     p.add_argument("--senha",   "-s", default=None)
     p.add_argument("--out",     "-o",
-                   default="src/data/boletim.json",
-                   help="Caminho de saída do JSON (padrão: src/data/boletim.json)")
+                   default="public/data/boletim.json",
+                   help="Caminho de saída do JSON (padrão: public/data/boletim.json)")
     args = p.parse_args()
 
     usuario = args.usuario or os.environ.get("SUAP_USER") or input("👤  Usuário (matrícula): ").strip()

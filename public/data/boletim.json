@@ -1,13 +1,13 @@
 {
-  "atualizadoEm": "2026-04-16T19:21:44",
+  "atualizadoEm": "2026-04-17T22:34:25",
   "disciplinas": [
     {
       "diario": "54447",
       "nome": "Cálculo Numérico",
       "total_aulas": "80 aulas",
-      "carga_horaria": "36",
+      "carga_horaria": "38",
       "total_faltas": "10",
-      "frequencia": "72%",
+      "frequencia": "74%",
       "situacao": "Cursando",
       "nota_e1": "-",
       "faltas_e1": "10",
@@ -15,7 +15,7 @@
       "nota_af": "-",
       "faltas_af": "0",
       "mfd": "-",
-      "subject_id": "ENC-24",
+      "subject_id": "ENC-23",
       "faltas_int": 10
     },
     {
@@ -32,7 +32,7 @@
       "nota_af": "-",
       "faltas_af": "0",
       "mfd": "-",
-      "subject_id": "ENC-29",
+      "subject_id": "ENC-33",
       "faltas_int": 4
     },
     {
@@ -49,7 +49,7 @@
       "nota_af": "-",
       "faltas_af": "0",
       "mfd": "-",
-      "subject_id": "ENC-34",
+      "subject_id": "ENC-31",
       "faltas_int": 9
     },
     {
@@ -66,7 +66,7 @@
       "nota_af": "-",
       "faltas_af": "0",
       "mfd": "-",
-      "subject_id": "ENC-22",
+      "subject_id": "ENC-21",
       "faltas_int": 8
     },
     {
@@ -83,7 +83,7 @@
       "nota_af": "-",
       "faltas_af": "0",
       "mfd": "-",
-      "subject_id": "ENC-33",
+      "subject_id": "ENC-34",
       "faltas_int": 6
     },
     {
@@ -100,7 +100,7 @@
       "nota_af": "-",
       "faltas_af": "0",
       "mfd": "-",
-      "subject_id": "ENC-32",
+      "subject_id": "ENC-30",
       "faltas_int": 2
     },
     {
@@ -117,17 +117,17 @@
       "nota_af": "-",
       "faltas_af": "0",
       "mfd": "-",
-      "subject_id": "ENC-30",
+      "subject_id": "ENC-32",
       "faltas_int": 4
     }
   ],
   "faltas": {
-    "ENC-24": 10,
-    "ENC-29": 4,
-    "ENC-34": 9,
-    "ENC-22": 8,
-    "ENC-33": 6,
-    "ENC-32": 2,
-    "ENC-30": 4
+    "ENC-23": 10,
+    "ENC-33": 4,
+    "ENC-31": 9,
+    "ENC-21": 8,
+    "ENC-34": 6,
+    "ENC-30": 2,
+    "ENC-32": 4
   }
 }
