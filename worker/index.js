@@ -25,8 +25,18 @@ function addCorsHeaders(response) {
 }
 
 function extractCsrfToken(html) {
-  const match = html.match(/name='csrfmiddlewaretoken' value='([^']+)'/);
-  return match ? match[1] : null;
+  const patterns = [
+    /name='csrfmiddlewaretoken'\s+value='([^']+)'/,
+    /name="csrfmiddlewaretoken"\s+value="([^"]+)"/,
+    /csrfmiddlewaretoken['"]\s+value=['"]([^'"]+)['"]/,
+    /value=['"]([^'"]+)['"]\s+name=['"]csrfmiddlewaretoken['"]/,
+    /csrfmiddlewaretoken.*?value=['"]([^'"]+)['"]/,
+  ];
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
 }
 
 function extractCookies(headers) {
@@ -101,6 +111,7 @@ async function getGrades() {
   const csrfToken = extractCsrfToken(loginPageHtml);
 
   if (!csrfToken) {
+    console.log("HTML trecho login:", loginPageHtml.substring(0, 2000));
     console.log("ERRO: CSRF token not found");
     throw new Error('CSRF token not found');
   }
