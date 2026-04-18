@@ -1,239 +1,205 @@
 const SUAP_BASE = 'https://suap.ifmt.edu.br';
-const SUAP_USER = SUAP_USER || '';
-const SUAP_PASS = SUAP_PASS || '';
-
-const SUBJECT_MAP = {
-  'Cálculo Numérico': 'ENC-23',
-  'Compiladores': 'ENC-33',
-  'Engenharia de Software': 'ENC-31',
-  'Equações Diferenciais': 'ENC-21',
-  'Extensão I': 'ENC-34',
-  'Laboratório de Circuitos Elétricos I': 'ENC-30',
-  'Programação WEB': 'ENC-32',
-};
-
-function addCorsHeaders(response) {
-  const headers = new Headers(response.headers);
-  headers.set('Access-Control-Allow-Origin', '*');
-  headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  headers.set('Access-Control-Allow-Headers', 'Content-Type');
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
-}
 
 function extractCsrfToken(html) {
   const patterns = [
     /name='csrfmiddlewaretoken'\s+value='([^']+)'/,
     /name="csrfmiddlewaretoken"\s+value="([^"]+)"/,
-    /csrfmiddlewaretoken['"]\s+value=['"]([^'"]+)['"]/,
-    /value=['"]([^'"]+)['"]\s+name=['"]csrfmiddlewaretoken['"]/,
-    /csrfmiddlewaretoken.*?value=['"]([^'"]+)['"]/,
+    /value='([^']+)'\s+name='csrfmiddlewaretoken'/,
+    /value="([^"]+)"\s+name="csrfmiddlewaretoken"/,
   ];
-  for (const pattern of patterns) {
-    const match = html.match(pattern);
-    if (match) return match[1];
+  for (const p of patterns) {
+    const m = html.match(p);
+    if (m) return m[1];
   }
   return null;
 }
 
-function extractCookies(headers) {
-  const setCookie = headers.get('Set-Cookie');
-  if (!setCookie) return '';
-  return setCookie.split(';')[0];
+function extractAllCookies(response) {
+  const cookies = {};
+  const raw = response.headers.get('set-cookie') || '';
+  const parts = raw.split(',');
+  for (const part of parts) {
+    const seg = part.trim().split(';')[0];
+    const eq = seg.indexOf('=');
+    if (eq > 0) {
+      cookies[seg.substring(0, eq).trim()] = seg.substring(eq + 1).trim();
+    }
+  }
+  return cookies;
 }
 
-async function fetchWithCookies(url, method, body, cookies, csrfToken) {
-  const headers = {
-    'Content-Type': 'application/x-www-form-urlencoded',
-  };
-  if (cookies) headers['Cookie'] = cookies;
-  if (csrfToken) headers['X-CSRFToken'] = csrfToken;
+function cookiesToHeader(cookies) {
+  return Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ');
+}
 
-  const options = {
-    method,
-    headers,
+async function getGrades(env) {
+  const SUAP_USER = env.SUAP_USER;
+  const SUAP_PASS = env.SUAP_PASS;
+
+  console.log("SUAP_USER:", SUAP_USER ? "presente" : "VAZIO");
+
+  // 1. GET login page para obter CSRF
+  const loginPageRes = await fetch(`${SUAP_BASE}/accounts/login/`, {
+    method: 'GET',
     redirect: 'manual',
-  };
-  if (body) options.body = body;
+    headers: { 'User-Agent': 'Mozilla/5.0' }
+  });
 
-  const response = await fetch(url, options);
-  const newCookies = extractCookies(response.headers);
-  return { response, cookies: newCookies };
-}
+  console.log("Status login page:", loginPageRes.status);
 
-function parseGradeTable(html) {
-  const tableMatch = html.match(/<table[^>]*summary="Boletim do Aluno"[^>]*>([\s\S]*?)<\/table>/i);
-  if (!tableMatch) return [];
+  const loginPageHtml = await loginPageRes.text();
+  let cookies = extractAllCookies(loginPageRes);
 
-  const tableHtml = tableMatch[1];
-  const rows = [];
-  const tbodyMatch = tableHtml.match(/<tbody>([\s\S]*?)<\/tbody>/i);
-  const tbodyHtml = tbodyMatch ? tbodyMatch[1] : tableHtml;
-
-  const rowRegex = /<tr>([\s\S]*?)<\/tr>/gi;
-  let rowMatch;
-  while ((rowMatch = rowRegex.exec(tbodyHtml)) !== null) {
-    const rowHtml = rowMatch[1];
-    const cols = [];
-    const colRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
-    let colMatch;
-    while ((colMatch = colRegex.exec(rowHtml)) !== null) {
-      cols.push(colMatch[1].replace(/<[^>]+>/g, '').trim());
-    }
-    if (cols.length > 0) rows.push(cols);
-  }
-  return rows;
-}
-
-function cleanDisciplineName(name) {
-  return name.replace(/^Normal\.\d+ - /, '');
-}
-
-function mapSubjectId(name) {
-  const cleaned = cleanDisciplineName(name);
-  for (const [key, value] of Object.entries(SUBJECT_MAP)) {
-    if (cleaned.toLowerCase().includes(key.toLowerCase())) {
-      return value;
-    }
-  }
-  return null;
-}
-
-async function getGrades() {
-  let cookies = '';
-
-  const loginPageRes = await fetchWithCookies(`${SUAP_BASE}/accounts/login/`, 'GET', null, null, null);
-  console.log("Status login page:", loginPageRes.response.status);
-  const loginPageHtml = await loginPageRes.response.text();
-  const csrfToken = extractCsrfToken(loginPageHtml);
+  const csrfToken = extractCsrfToken(loginPageHtml) || cookies['csrftoken'];
+  console.log("CSRF token:", csrfToken ? "encontrado" : "NAO encontrado");
 
   if (!csrfToken) {
-    console.log("HTML trecho login:", loginPageHtml.substring(0, 2000));
-    console.log("ERRO: CSRF token not found");
+    console.log("HTML trecho:", loginPageHtml.substring(0, 1000));
     throw new Error('CSRF token not found');
   }
 
-  cookies = loginPageRes.cookies;
-
-  const loginData = new URLSearchParams({
+  // 2. POST login
+  const loginBody = new URLSearchParams({
     username: SUAP_USER,
     password: SUAP_PASS,
     csrfmiddlewaretoken: csrfToken,
-    next: '/',
+    next: '/'
   });
 
-  const loginRes = await fetchWithCookies(
-    `${SUAP_BASE}/accounts/login/`,
-    'POST',
-    loginData.toString(),
-    cookies,
-    csrfToken
-  );
+  const loginRes = await fetch(`${SUAP_BASE}/accounts/login/`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': cookiesToHeader(cookies),
+      'Referer': `${SUAP_BASE}/accounts/login/`,
+      'User-Agent': 'Mozilla/5.0',
+      'X-CSRFToken': csrfToken
+    },
+    body: loginBody.toString()
+  });
 
-  console.log("Status após login:", loginRes.response.status);
-  console.log("Headers após login:", JSON.stringify([...loginRes.response.headers]));
+  console.log("Status após login:", loginRes.status);
+  const newCookies = extractAllCookies(loginRes);
+  cookies = { ...cookies, ...newCookies };
 
-  cookies = loginRes.cookies;
-
-  if (loginRes.response.status === 302) {
-    const redirectMatch = loginRes.response.headers.get('Location');
-    if (redirectMatch) {
-      const redirectRes = await fetchWithCookies(`${SUAP_BASE}${redirectMatch}`, 'GET', null, cookies, csrfToken);
-      cookies = redirectRes.cookies;
-    }
+  if (loginRes.status !== 302 || loginRes.headers.get('location') === '/accounts/login/') {
+    throw new Error('Login falhou - credenciais incorretas ou bloqueio');
   }
 
-  const gradesRes = await fetchWithCookies(
-    `${SUAP_BASE}/edu/aluno/${SUAP_USER}/?tab=boletim`,
-    'GET',
-    null,
-    cookies,
-    csrfToken
-  );
+  // 3. GET boletim
+  const boletimUrl = `${SUAP_BASE}/edu/aluno/${SUAP_USER}/?tab=boletim`;
+  console.log("Buscando boletim:", boletimUrl);
 
-  console.log("Status boletim:", gradesRes.response.status);
-  console.log("URL final:", gradesRes.response.url);
+  const boletimRes = await fetch(boletimUrl, {
+    method: 'GET',
+    redirect: 'follow',
+    headers: {
+      'Cookie': cookiesToHeader(cookies),
+      'User-Agent': 'Mozilla/5.0'
+    }
+  });
 
-  const gradesHtml = await gradesRes.response.text();
-  const rows = parseGradeTable(gradesHtml);
+  console.log("Status boletim:", boletimRes.status);
 
+  const html = await boletimRes.text();
+
+  // 4. Parsear tabela
+  const tableMatch = html.match(/summary="Boletim do Aluno"[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/);
+  if (!tableMatch) {
+    console.log("HTML boletim trecho:", html.substring(0, 2000));
+    throw new Error('Tabela do boletim não encontrada');
+  }
+
+  const subjectMap = {
+    'Cálculo Numérico': 'ENC-23',
+    'Compiladores': 'ENC-33',
+    'Engenharia de Software': 'ENC-31',
+    'Equações Diferenciais': 'ENC-21',
+    'Extensão I': 'ENC-34',
+    'Laboratório de Circuitos Elétricos I': 'ENC-30',
+    'Programação WEB': 'ENC-32',
+  };
+
+  const rows = tableMatch[1].match(/<tr[\s\S]*?<\/tr>/g) || [];
   const disciplinas = [];
-  const faltas = {};
 
   for (const row of rows) {
-    if (row.length < 13) continue;
+    const cells = row.match(/<td[^>]*>([\s\S]*?)<\/td>/g) || [];
+    if (cells.length < 10) continue;
 
-    const rawName = row[1];
-    const name = cleanDisciplineName(rawName);
-    const subjectId = mapSubjectId(name);
-    const totalFaltas = parseInt(row[4]) || 0;
+    const getText = (cell) => cell.replace(/<[^>]+>/g, '').trim();
+    let nome = getText(cells[1]).replace(/^Normal\.\d+ - /, '');
 
-    const disciplina = {
-      diario: row[0],
-      nome: name,
-      total_aulas: row[2],
-      carga_horaria: row[3],
-      total_faltas: row[4],
-      frequencia: row[5],
-      situacao: row[6],
-      nota_e1: row[7],
-      faltas_e1: row[8],
-      media: row[9],
-      nota_af: row[10],
-      faltas_af: row[11],
-      mfd: row[12],
-      subject_id: subjectId,
-      faltas_int: totalFaltas,
-    };
+    const subject_id = Object.entries(subjectMap).find(([k]) =>
+      nome.toLowerCase().includes(k.toLowerCase())
+    )?.[1] || null;
 
-    if (subjectId) {
-      faltas[subjectId] = totalFaltas;
-    }
+    disciplinas.push({
+      diario: getText(cells[0]),
+      nome,
+      total_aulas: getText(cells[2]),
+      carga_horaria: getText(cells[3]),
+      total_faltas: getText(cells[4]),
+      frequencia: getText(cells[5]),
+      situacao: getText(cells[6]),
+      nota_e1: getText(cells[7]),
+      faltas_e1: getText(cells[8]),
+      media: getText(cells[9]),
+      nota_af: cells[10] ? getText(cells[10]) : '',
+      faltas_af: cells[11] ? getText(cells[11]) : '',
+      mfd: cells[12] ? getText(cells[12]) : '',
+      subject_id,
+      faltas_int: parseInt(getText(cells[4])) || 0
+    });
+  }
 
-    disciplinas.push(disciplina);
+  console.log("Disciplinas encontradas:", disciplinas.length);
+
+  const faltas = {};
+  for (const d of disciplinas) {
+    if (d.subject_id) faltas[d.subject_id] = d.faltas_int;
   }
 
   return {
     atualizadoEm: new Date().toISOString(),
     disciplinas,
-    faltas,
+    faltas
   };
 }
 
-async function handleRequest(request) {
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204 });
+export default {
+  async fetch(request, env) {
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type'
+        }
+      });
+    }
+
+    if (request.method !== 'POST') {
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        status: 405,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      });
+    }
+
+    try {
+      const data = await getGrades(env);
+      return new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      });
+    } catch (err) {
+      console.log("ERRO FINAL:", err.message, err.stack);
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      });
+    }
   }
-
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  console.log("Worker iniciado");
-
-  try {
-    const result = await getGrades();
-    console.log("Disciplinas encontradas:", disciplinas.length);
-    return new Response(JSON.stringify(result), {
-      headers: { 'Content-Type' : 'application/json' },
-    });
-  } catch (error) {
-    console.log("ERRO:", error.message, error.stack);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-}
-
-addEventListener('fetch', (event) => {
-  event.respondWith(
-    handleRequest(event.request).then((response) => addCorsHeaders(response))
-  );
-});
+};
