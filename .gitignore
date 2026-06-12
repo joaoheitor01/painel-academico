@@ -1,4 +1,5 @@
 node_modules
+.vite
 
 # Cloudflare Worker
 worker/node_modules/

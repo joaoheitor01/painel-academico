@@ -13,15 +13,19 @@ import {
   GitBranch,
   GraduationCap,
   Layers,
+  LogOut,
   Minus,
   Network,
   Plus,
   Shield,
   Star,
   TrendingUp,
+  User as UserIcon,
   XCircle,
   Zap,
 } from "lucide-react";
+import { getSession, setSession, getDisplayName } from "../../auth";
+import AuthScreen from "../Auth/AuthScreen";
 
 const SUBJECTS = [
   { id: "ENC-01", name: "Fundamentos da Matematica", sem: 1, status: "done", academicTerm: "2024/1", prereqs: [] },
@@ -1112,9 +1116,8 @@ function FlowTab({ subjects }) {
   );
 }
 
-export default function AcademicDashboard() {
+function Dashboard({ userKey, displayName, onLogout }) {
   const [tab, setTab] = useState("overview");
-  const [userName, setUserName] = useState(() => readLocalStorage(STORAGE_KEYS.activeUser, ""));
   const [profiles, setProfiles] = useState(() => sanitizeProfiles(readLocalStorage(STORAGE_KEYS.profiles, {})));
   const [currentSemester, setCurrentSemester] = useState(DEFAULT_CURRENT_SEMESTER);
   const [subjectStatus, setSubjectStatus] = useState(() => createDefaultSubjectStatus());
@@ -1127,11 +1130,7 @@ export default function AcademicDashboard() {
   const [hasSuapSnapshot, setHasSuapSnapshot] = useState(false);
   const [suapSnapshotSemester, setSuapSnapshotSemester] = useState(null);
   const hydratingProfileRef = useRef(true);
-  const activeUserKey = useMemo(() => normalizeUserName(userName), [userName]);
-
-  useEffect(() => {
-    writeLocalStorage(STORAGE_KEYS.activeUser, userName);
-  }, [userName]);
+  const activeUserKey = userKey;
 
   useEffect(() => {
     writeLocalStorage(STORAGE_KEYS.profiles, profiles);
@@ -1345,6 +1344,21 @@ export default function AcademicDashboard() {
   return (
     <div className="min-h-screen bg-slate-950 p-4 text-white md:p-6 lg:p-8" style={{ fontFamily: "system-ui, sans-serif" }}>
       <div className="mx-auto max-w-6xl space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-2.5">
+          <div className="flex items-center gap-2 text-sm text-slate-300">
+            <UserIcon size={14} className="text-violet-400" />
+            <span className="font-semibold text-white">{displayName}</span>
+          </div>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-red-500/40 hover:text-red-400"
+          >
+            <LogOut size={14} />
+            Sair
+          </button>
+        </div>
+
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="mb-1 flex items-center gap-2">
@@ -1361,17 +1375,7 @@ export default function AcademicDashboard() {
           </div>
         </div>
 
-        <div className="grid gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-[1fr_220px_220px]">
-          <label className="flex flex-col gap-1 text-xs text-slate-500">
-            Perfil local
-            <input
-              value={userName}
-              onChange={(event) => setUserName(event.target.value)}
-              placeholder="Ex.: perfil-a"
-              className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-slate-600 focus:border-violet-500"
-            />
-          </label>
-
+        <div className="grid gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-[220px]">
           <label className="flex flex-col gap-1 text-xs text-slate-500">
             Semestre atual
             <select
@@ -1386,11 +1390,6 @@ export default function AcademicDashboard() {
               ))}
             </select>
           </label>
-
-          <div className="flex flex-col justify-center rounded-xl border border-slate-800 bg-slate-950 px-3 py-2">
-            <span className="text-[11px] uppercase tracking-widest text-slate-500">Chave ativa</span>
-            <span className="truncate text-sm font-semibold text-white">{activeUserKey}</span>
-          </div>
         </div>
 
         <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
@@ -1489,8 +1488,34 @@ export default function AcademicDashboard() {
           </div>
         </div>
 
-        <p className="pb-4 text-center text-xs text-slate-700">Academic Dashboard · perfil local · estado salvo no navegador</p>
+        <p className="pb-4 text-center text-xs text-slate-700">Academic Dashboard · conta local · estado salvo no navegador</p>
       </div>
     </div>
+  );
+}
+
+export default function AcademicDashboard() {
+  const [userKey, setUserKey] = useState(() => getSession());
+
+  if (!userKey) {
+    return (
+      <AuthScreen
+        onAuthenticated={(key) => {
+          setSession(key);
+          setUserKey(key);
+        }}
+      />
+    );
+  }
+
+  return (
+    <Dashboard
+      userKey={userKey}
+      displayName={getDisplayName(userKey)}
+      onLogout={() => {
+        setSession(null);
+        setUserKey(null);
+      }}
+    />
   );
 }
