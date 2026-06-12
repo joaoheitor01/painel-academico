@@ -1,191 +1,19 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   CheckCircle2, Circle, BookOpen, Zap, ChevronRight,
   BarChart3, GitBranch, GraduationCap, Clock, Star,
   ArrowRight, Layers, TrendingUp, Network, Calendar,
-  AlertTriangle, XCircle, Shield, Minus, Plus, CalendarDays
+  AlertTriangle, XCircle, Shield, Minus, Plus, CalendarDays,
+  User, LogOut, Pencil
 } from "lucide-react";
-
-// ─── SUBJECTS DATA ───────────────────────────────────────────────────────────
-const SUBJECTS = [
-  { id: "ENC-01", name: "Fundamentos da Matemática",              sem: 1,  status: "done",    academicTerm: "2024/1", prereqs: [] },
-  { id: "ENC-02", name: "Algoritmos I",                           sem: 1,  status: "done",    academicTerm: "2024/1", prereqs: [] },
-  { id: "ENC-03", name: "Introdução à Engenharia da Computação",  sem: 1,  status: "done",    academicTerm: "2024/1", prereqs: [] },
-  { id: "ENC-04", name: "Desenho Técnico em Ambiente Computacional", sem: 1, status: "done", academicTerm: "2024/1", prereqs: [] },
-  { id: "ENC-05", name: "Química Geral e Ciência dos Materiais",  sem: 1,  status: "done",    academicTerm: "2024/1", prereqs: [] },
-  { id: "ENC-16", name: "Cálculo Vetorial e Geometria Analítica", sem: 3,  status: "done",    academicTerm: "2024/1", prereqs: ["ENC-07"] },
-  { id: "ENC-27", name: "Economia",                               sem: 4,  status: "done",    academicTerm: "2024/1", prereqs: [] },
-
-  { id: "ENC-09", name: "Física Geral e Experimental I",          sem: 2,  status: "done",    academicTerm: "2024/2", prereqs: ["ENC-01"] },
-  { id: "ENC-25", name: "Arquitetura e Organização de Computadores", sem: 4, status: "done", academicTerm: "2024/2", prereqs: ["ENC-03"] },
-  { id: "ENC-08", name: "Algoritmos II",                          sem: 2,  status: "done",    academicTerm: "2024/2", prereqs: ["ENC-02"] },
-  { id: "ENC-28", name: "Ciências do Ambiente",                   sem: 4,  status: "done",    academicTerm: "2024/2", prereqs: ["ENC-05"] },
-  { id: "ENC-26", name: "Eletrônica Digital",                     sem: 4,  status: "done",    academicTerm: "2024/2", prereqs: ["ENC-09"] },
-
-  { id: "ENC-06", name: "Metodologia Científica (Refeita)",       sem: 1,  status: "done",    academicTerm: "2025/1", tags: ["Refeita"], prereqs: [] },
-  { id: "ENC-07", name: "Cálculo Diferencial e Integral I (Refeita)", sem: 2, status: "done", academicTerm: "2025/1", tags: ["Refeita"], prereqs: ["ENC-01"] },
-  { id: "ENC-23", name: "Álgebra Linear",                         sem: 4,  status: "done",    academicTerm: "2025/1", prereqs: ["ENC-16"] },
-  { id: "ENC-15", name: "Física Geral e Experimental II",         sem: 3,  status: "done",    academicTerm: "2025/1", prereqs: ["ENC-07","ENC-09"] },
-  { id: "ENC-31", name: "Sistemas Operacionais",                  sem: 5,  status: "done",    academicTerm: "2025/1", prereqs: ["ENC-25"] },
-  { id: "ENC-11", name: "Introdução à Extensão",                  sem: 2,  status: "done",    academicTerm: "2025/1", prereqs: [] },
-  { id: "ENC-14", name: "Estruturas de Dados",                    sem: 3,  status: "done",    academicTerm: "2025/1", prereqs: ["ENC-08"] },
-
-  { id: "ENC-13", name: "Cálculo Diferencial e Integral II",      sem: 3,  status: "done",    academicTerm: "2025/2", prereqs: ["ENC-07"] },
-  { id: "ENC-20", name: "Programação Orientada a Objetos",        sem: 4,  status: "done",    academicTerm: "2025/2", prereqs: ["ENC-14"] },
-  { id: "ENC-19", name: "Banco de Dados",                         sem: 4,  status: "done",    academicTerm: "2025/2", prereqs: ["ENC-14"] },
-  { id: "ENC-21", name: "Física Geral e Experimental III",        sem: 4,  status: "done",    academicTerm: "2025/2", prereqs: ["ENC-13","ENC-15"] },
-  { id: "ENC-17", name: "Matemática Discreta e Teoria dos Grafos",sem: 3,  status: "done",    academicTerm: "2025/2", prereqs: ["ENC-08"] },
-  { id: "ENC-35", name: "Circuitos Elétricos I",                  sem: 6,  status: "done",    academicTerm: "2025/2", prereqs: ["ENC-21","ENC-22"] },
-  { id: "ENC-36", name: "Transmissão e Comunicação de Dados",     sem: 6,  status: "done",    academicTerm: "2025/2", prereqs: ["ENC-31","ENC-10"] },
-  { id: "ENC-10", name: "Probabilidade e Estatística",            sem: 2,  status: "done",    academicTerm: "2025/2", tags: ["Extracurricular"], prereqs: ["ENC-01"] },
-  { id: "ENC-18", name: "Saúde e Segurança do Trabalho",          sem: 3,  status: "done",    academicTerm: "2025/2", tags: ["Extracurricular"], prereqs: [] },
-  { id: "ENC-12", name: "Ética Profissional",                     sem: 2,  status: "done",    academicTerm: "2025/2", tags: ["Cumprida"], prereqs: [] },
-
-  { id: "ENC-24", name: "Cálculo Numérico",                       sem: 5,  status: "current", academicTerm: "2026/1", prereqs: ["ENC-13","ENC-23"] },
-  { id: "ENC-22", name: "Equações Diferenciais",                  sem: 5,  status: "current", academicTerm: "2026/1", prereqs: ["ENC-13"] },
-  { id: "ENC-34", name: "Engenharia de Software",                 sem: 5,  status: "current", academicTerm: "2026/1", prereqs: ["ENC-19","ENC-20"] },
-  { id: "ENC-30", name: "Programação WEB",                        sem: 5,  status: "current", academicTerm: "2026/1", prereqs: ["ENC-19","ENC-20"] },
-  { id: "ENC-29", name: "Compiladores",                           sem: 5,  status: "current", academicTerm: "2026/1", prereqs: ["ENC-14"] },
-  { id: "ENC-32", name: "Laboratório de Circuitos Elétricos I",   sem: 5,  status: "current", academicTerm: "2026/1", prereqs: ["ENC-21","ENC-22"] },
-  { id: "ENC-33", name: "Extensão I",                             sem: 5,  status: "current", academicTerm: "2026/1", prereqs: ["ENC-11"] },
-
-  { id: "ENC-37", name: "Análise e Proj. de Sistemas Computacionais", sem: 6, status: "next", academicTerm: "2026/2", prereqs: ["ENC-34"] },
-  { id: "ENC-38", name: "Extensão II",                            sem: 6,  status: "next",    academicTerm: "2026/2", prereqs: ["ENC-33"] },
-
-  { id: "ENC-39", name: "Circuitos Elétricos II",                 sem: 7,  status: "future",  academicTerm: "2027/1", prereqs: ["ENC-35"] },
-  { id: "ENC-40", name: "Eletrônica Analógica I",                 sem: 7,  status: "future",  academicTerm: "2027/1", prereqs: ["ENC-35"] },
-  { id: "ENC-41", name: "Sinais e Sistemas Lineares",             sem: 7,  status: "future",  academicTerm: "2027/1", prereqs: ["ENC-35"] },
-  { id: "ENC-42", name: "Redes de Computadores",                  sem: 7,  status: "future",  academicTerm: "2027/1", prereqs: ["ENC-36"] },
-  { id: "ENC-43", name: "Inteligência Artificial",                sem: 7,  status: "future",  academicTerm: "2027/1", prereqs: ["ENC-14","ENC-10"] },
-  { id: "ENC-44", name: "Extensão III",                           sem: 7,  status: "future",  academicTerm: "2027/1", prereqs: ["ENC-38"] },
-
-  { id: "ENC-45", name: "Eletrônica Analógica II",                sem: 8,  status: "future",  academicTerm: "2027/2", prereqs: ["ENC-40"] },
-  { id: "ENC-46", name: "Processamento Digital de Sinais",        sem: 8,  status: "future",  academicTerm: "2027/2", prereqs: ["ENC-41"] },
-  { id: "ENC-47", name: "Sistemas Embarcados",                    sem: 8,  status: "future",  academicTerm: "2027/2", prereqs: ["ENC-39","ENC-31"] },
-  { id: "ENC-48", name: "Segurança Computacional",                sem: 8,  status: "future",  academicTerm: "2027/2", prereqs: ["ENC-42"] },
-  { id: "ENC-49", name: "Extensão IV",                            sem: 8,  status: "future",  academicTerm: "2027/2", prereqs: ["ENC-44"] },
-
-  { id: "ENC-50", name: "Projeto Integrador I",                   sem: 9,  status: "future",  academicTerm: "2028/1", prereqs: ["ENC-37","ENC-43"] },
-  { id: "ENC-51", name: "Visão Computacional",                    sem: 9,  status: "future",  academicTerm: "2028/1", prereqs: ["ENC-43"] },
-  { id: "ENC-52", name: "Internet das Coisas",                    sem: 9,  status: "future",  academicTerm: "2028/1", prereqs: ["ENC-47","ENC-42"] },
-  { id: "ENC-53", name: "Extensão V",                             sem: 9,  status: "future",  academicTerm: "2028/1", prereqs: ["ENC-49"] },
-
-  { id: "ENC-54", name: "Trabalho de Conclusão de Curso",         sem: 10, status: "future",  academicTerm: "2028/2", prereqs: ["ENC-50"] },
-];
-
-const ACADEMIC_TERMS = [
-  { id: "2024/1", label: "Ano Letivo 2024/1" },
-  { id: "2024/2", label: "Ano Letivo 2024/2" },
-  { id: "2025/1", label: "Ano Letivo 2025/1" },
-  { id: "2025/2", label: "Ano Letivo 2025/2" },
-  { id: "2026/1", label: "Ano Letivo 2026/1" },
-  { id: "2026/2", label: "Ano Letivo 2026/2" },
-  { id: "2027/1", label: "Ano Letivo 2027/1" },
-  { id: "2027/2", label: "Ano Letivo 2027/2" },
-  { id: "2028/1", label: "Ano Letivo 2028/1" },
-  { id: "2028/2", label: "Ano Letivo 2028/2" },
-];
-
-// ─── ATTENDANCE META ─────────────────────────────────────────────────────────
-const ATTENDANCE_META = {
-  "ENC-34": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Eng. Software" },
-  "ENC-33": { cargaHoraria: 60, aulasPorDia: 3, shortName: "Extensão I" },
-  "ENC-29": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Compiladores" },
-  "ENC-32": { cargaHoraria: 40, aulasPorDia: 2, shortName: "Lab. Circuitos I" },
-  "ENC-30": { cargaHoraria: 60, aulasPorDia: 3, shortName: "Prog. WEB" },
-  "ENC-24": { cargaHoraria: 60, aulasPorDia: 2, shortName: "Cálculo Numérico" },
-  "ENC-22": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Eq. Diferenciais" },
-};
-
-// ─── SCHEDULE DATA ───────────────────────────────────────────────────────────
-const toMin = (h, m) => h * 60 + m;
-const fmtTime = (min) => `${String(Math.floor(min/60)).padStart(2,"0")}:${String(min%60).padStart(2,"0")}`;
-const DAY_START = toMin(13, 0);
-const DAY_END   = toMin(22, 25);
-const DAY_SPAN  = DAY_END - DAY_START;
-
-const SCHEDULE = [
-  {
-    day: "Segunda", dayShort: "SEG",
-    blocks: [
-      { id: "ENC-34", name: "Engenharia de Software", start: toMin(13,0),  end: toMin(16,40), aulas: 4 },
-      { id: "ENC-33", name: "Extensão I",             start: toMin(16,40), end: toMin(19,40), aulas: 3,
-        intervals: [{ start: toMin(18,20), end: toMin(18,50) }] },
-    ],
-  },
-  {
-    day: "Terça", dayShort: "TER",
-    blocks: [
-      { id: "ENC-29", name: "Compiladores", start: toMin(13,0),  end: toMin(16,40), aulas: 4 },
-      { id: "ENC-33", name: "Extensão I",   start: toMin(16,40), end: toMin(19,40), aulas: 3,
-        intervals: [{ start: toMin(18,20), end: toMin(18,50) }] },
-    ],
-  },
-  {
-    day: "Quarta", dayShort: "QUA",
-    blocks: [
-      { id: "ENC-32", name: "Lab. Circuitos I", start: toMin(13,0), end: toMin(14,40), aulas: 2 },
-    ],
-  },
-  {
-    day: "Quinta", dayShort: "QUI",
-    blocks: [
-      { id: "ENC-30", name: "Prog. WEB",        start: toMin(13,0),  end: toMin(13,50), aulas: 1 },
-      { id: "ENC-24", name: "Cálculo Numérico", start: toMin(13,50), end: toMin(15,30), aulas: 2 },
-      { id: "ENC-30", name: "Prog. WEB",        start: toMin(15,50), end: toMin(17,30), aulas: 2 },
-    ],
-  },
-  {
-    day: "Sexta", dayShort: "SEX",
-    blocks: [
-      { id: "ENC-24", name: "Cálculo Numérico", start: toMin(13,0),  end: toMin(14,40), aulas: 2 },
-      { id: "ENC-22", name: "Eq. Diferenciais", start: toMin(18,50), end: toMin(22,25), aulas: 4,
-        intervals: [{ start: toMin(20,30), end: toMin(20,45) }] },
-    ],
-  },
-];
-
-const SUBJECT_COLORS = {
-  "ENC-34": { bg: "bg-violet-600",  border: "border-violet-500", text: "text-violet-100", dot: "bg-violet-400",  light: "bg-violet-500/15" },
-  "ENC-33": { bg: "bg-teal-600",    border: "border-teal-500",   text: "text-teal-100",   dot: "bg-teal-400",    light: "bg-teal-500/15" },
-  "ENC-29": { bg: "bg-orange-600",  border: "border-orange-500", text: "text-orange-100", dot: "bg-orange-400",  light: "bg-orange-500/15" },
-  "ENC-32": { bg: "bg-pink-600",    border: "border-pink-500",   text: "text-pink-100",   dot: "bg-pink-400",    light: "bg-pink-500/15" },
-  "ENC-30": { bg: "bg-sky-600",     border: "border-sky-500",    text: "text-sky-100",    dot: "bg-sky-400",     light: "bg-sky-500/15" },
-  "ENC-24": { bg: "bg-amber-600",   border: "border-amber-500",  text: "text-amber-100",  dot: "bg-amber-400",   light: "bg-amber-500/15" },
-  "ENC-22": { bg: "bg-rose-600",    border: "border-rose-500",   text: "text-rose-100",   dot: "bg-rose-400",    light: "bg-rose-500/15" },
-};
-
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-function getCascadeCount(subjectId, allSubjects) {
-  const visited = new Set();
-  function dfs(id) {
-    if (visited.has(id)) return;
-    visited.add(id);
-    allSubjects.filter(s => s.prereqs.includes(id)).forEach(s => dfs(s.id));
-  }
-  dfs(subjectId);
-  visited.delete(subjectId);
-  return visited.size;
-}
-
-function calcAbsence(meta, faltas) {
-  const limite = Math.floor(meta.cargaHoraria * 0.25);
-  const restam = limite - faltas;
-  const diasRestantes = restam <= 0 ? 0 : Math.floor(restam / meta.aulasPorDia);
-  const pct = Math.min(100, Math.round((faltas / limite) * 100));
-  let state = "safe";
-  if (faltas >= limite) state = "danger";
-  else if (diasRestantes <= 2) state = "warning";
-  return { limite, restam, diasRestantes, pct, state };
-}
-
-// ─── STATUS CONFIG ────────────────────────────────────────────────────────────
-const STATUS = {
-  done:    { label: "Concluída",  border: "border-emerald-500", bg: "bg-emerald-500/10", text: "text-emerald-400", badge: "bg-emerald-500/20 text-emerald-300" },
-  current: { label: "Cursando",   border: "border-violet-500",  bg: "bg-violet-500/10",  text: "text-violet-400",  badge: "bg-violet-500/20 text-violet-300" },
-  next:    { label: "Próxima",    border: "border-sky-500",     bg: "bg-sky-500/10",     text: "text-sky-400",     badge: "bg-sky-500/20 text-sky-300" },
-  future:  { label: "Futura",     border: "border-slate-600",   bg: "bg-slate-800/40",   text: "text-slate-400",   badge: "bg-slate-700 text-slate-400" },
-};
+import AuthScreen from "./AuthScreen";
+import { getSession, setSession, getDisplayName } from "./auth";
+import { loadUserData, saveUserData } from "./userData";
+import {
+  DEFAULT_SUBJECTS, ACADEMIC_TERMS, ATTENDANCE_META, SCHEDULE, SUBJECT_COLORS,
+  STATUS, STATUS_ORDER, toMin, fmtTime, DAY_START, DAY_END, DAY_SPAN,
+  getCascadeCount, calcAbsence,
+} from "./curriculumData";
 
 // ─── REUSABLE UI ──────────────────────────────────────────────────────────────
 function ProgressBar({ value, colorClass = "bg-violet-500" }) {
@@ -417,58 +245,73 @@ function AbsenceTab({ subjects, faltas, setFaltas }) {
         ainda pode perder antes de reprovar (mínimo de 75% de presença).
       </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {currentSubs.map(s => (
-          <AbsenceCard key={s.id} subject={s}
-            faltas={faltas[s.id] || 0}
-            onSetFaltas={(v) => setFaltas(prev => ({ ...prev, [s.id]: v }))} />
-        ))}
-      </div>
+      {currentSubs.length === 0 ? (
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-center">
+          <p className="text-sm text-slate-500">
+            Nenhuma das suas disciplinas marcadas como <span className="font-bold text-white">"Cursando"</span> tem
+            controle de frequência cadastrado.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {currentSubs.map(s => (
+              <AbsenceCard key={s.id} subject={s}
+                faltas={faltas[s.id] || 0}
+                onSetFaltas={(v) => setFaltas(prev => ({ ...prev, [s.id]: v }))} />
+            ))}
+          </div>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-800">
-          <p className="text-sm font-semibold text-slate-300">Resumo Geral de Frequência</p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-slate-800">
-                {["Disciplina","CH","Limite","Faltas","Restam","Dias Restantes","Status"].map(h => (
-                  <th key={h} className="px-3 py-2 text-left text-slate-500 font-medium whitespace-nowrap">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {currentSubs.map(s => {
-                const meta = ATTENDANCE_META[s.id];
-                const f = faltas[s.id] || 0;
-                const { limite, restam, diasRestantes, state } = calcAbsence(meta, f);
-                const statusLabel = { safe: "✅ Seguro", warning: "⚠️ Alerta", danger: "🔴 RF" }[state];
-                return (
-                  <tr key={s.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                    <td className="px-3 py-2.5 text-white font-medium">{meta.shortName}</td>
-                    <td className="px-3 py-2.5 text-slate-400">{meta.cargaHoraria}</td>
-                    <td className="px-3 py-2.5 text-slate-400">{limite}</td>
-                    <td className="px-3 py-2.5 font-bold text-white">{f}</td>
-                    <td className={`px-3 py-2.5 font-medium ${restam <= 0 ? "text-red-400" : restam <= meta.aulasPorDia * 2 ? "text-amber-400" : "text-emerald-400"}`}>{Math.max(0, restam)}</td>
-                    <td className={`px-3 py-2.5 font-bold ${diasRestantes <= 0 ? "text-red-400" : diasRestantes <= 2 ? "text-amber-400" : "text-emerald-400"}`}>{diasRestantes}</td>
-                    <td className="px-3 py-2.5">{statusLabel}</td>
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-800">
+              <p className="text-sm font-semibold text-slate-300">Resumo Geral de Frequência</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-slate-800">
+                    {["Disciplina","CH","Limite","Faltas","Restam","Dias Restantes","Status"].map(h => (
+                      <th key={h} className="px-3 py-2 text-left text-slate-500 font-medium whitespace-nowrap">{h}</th>
+                    ))}
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                </thead>
+                <tbody>
+                  {currentSubs.map(s => {
+                    const meta = ATTENDANCE_META[s.id];
+                    const f = faltas[s.id] || 0;
+                    const { limite, restam, diasRestantes, state } = calcAbsence(meta, f);
+                    const statusLabel = { safe: "✅ Seguro", warning: "⚠️ Alerta", danger: "🔴 RF" }[state];
+                    return (
+                      <tr key={s.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                        <td className="px-3 py-2.5 text-white font-medium">{meta.shortName}</td>
+                        <td className="px-3 py-2.5 text-slate-400">{meta.cargaHoraria}</td>
+                        <td className="px-3 py-2.5 text-slate-400">{limite}</td>
+                        <td className="px-3 py-2.5 font-bold text-white">{f}</td>
+                        <td className={`px-3 py-2.5 font-medium ${restam <= 0 ? "text-red-400" : restam <= meta.aulasPorDia * 2 ? "text-amber-400" : "text-emerald-400"}`}>{Math.max(0, restam)}</td>
+                        <td className={`px-3 py-2.5 font-bold ${diasRestantes <= 0 ? "text-red-400" : diasRestantes <= 2 ? "text-amber-400" : "text-emerald-400"}`}>{diasRestantes}</td>
+                        <td className="px-3 py-2.5">{statusLabel}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 // ─── OVERVIEW TAB ────────────────────────────────────────────────────────────
-function SubjectCard({ subject }) {
+function SubjectCard({ subject, editMode, onCycleStatus }) {
   const s = STATUS[subject.status];
   return (
-    <div className={`rounded-xl border ${s.border} ${s.bg} p-3.5 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg`}>
+    <div
+      onClick={editMode ? () => onCycleStatus(subject.id) : undefined}
+      title={editMode ? "Clique para alterar o status" : undefined}
+      className={`rounded-xl border ${s.border} ${s.bg} p-3.5 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg
+        ${editMode ? "cursor-pointer ring-1 ring-transparent hover:ring-violet-500/60" : ""}`}>
       <div className="flex items-start justify-between gap-2">
         <span className="text-sm font-medium text-white leading-snug">{subject.name}</span>
         <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap shrink-0 font-medium ${s.badge}`}>{subject.id}</span>
@@ -495,7 +338,7 @@ function SubjectCard({ subject }) {
   );
 }
 
-function OverviewTab({ subjects }) {
+function OverviewTab({ subjects, editMode, onCycleStatus }) {
   const current = subjects.filter(s => s.status === "current");
   const next    = subjects.filter(s => s.status === "next");
   const future  = subjects.filter(s => s.status === "future");
@@ -507,7 +350,7 @@ function OverviewTab({ subjects }) {
         <span className="text-xs text-slate-600 ml-auto">{items.length} disciplinas</span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-        {items.map(s => <SubjectCard key={s.id} subject={s} />)}
+        {items.map(s => <SubjectCard key={s.id} subject={s} editMode={editMode} onCycleStatus={onCycleStatus} />)}
       </div>
     </div>
   );
@@ -518,17 +361,27 @@ function OverviewTab({ subjects }) {
 
   return (
     <div className="space-y-8">
-      <Section title="5º Semestre — Cursando (2026/1)" icon={BookOpen}  items={current} color="text-violet-400" />
+      {editMode && (
+        <div className="rounded-2xl border border-violet-500/30 bg-violet-500/10 p-3 flex items-center gap-2">
+          <Pencil size={14} className="text-violet-400 shrink-0" />
+          <p className="text-xs text-violet-300">
+            Modo de edição ativo: clique em qualquer disciplina para alternar entre
+            <span className="font-bold"> Concluída → Cursando → Próxima → Futura</span>.
+          </p>
+        </div>
+      )}
+
+      <Section title="Cursando"           icon={BookOpen}  items={current} color="text-violet-400" />
       <div className="border-t border-slate-800" />
-      <Section title="Próximos Passos — Semestre 6"   icon={ArrowRight} items={next}    color="text-sky-400" />
+      <Section title="Próximos Passos"    icon={ArrowRight} items={next}    color="text-sky-400" />
       <div className="border-t border-slate-800" />
-      <Section title="Disciplinas Futuras"             icon={Layers}     items={future}  color="text-slate-500" />
+      <Section title="Disciplinas Futuras" icon={Layers}     items={future}  color="text-slate-500" />
 
       <div className="border-t border-slate-800" />
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Layers size={15} className="text-slate-400" />
-          <h3 className="text-sm font-semibold text-slate-400">Arquitetura por Ano Letivo</h3>
+          <h3 className="text-sm font-semibold text-slate-400">Arquitetura por Ano Letivo (referência)</h3>
         </div>
         <div className="space-y-4">
           {termGroups.map(term => (
@@ -541,7 +394,7 @@ function OverviewTab({ subjects }) {
                 <span className="text-xs text-slate-500">{term.id}</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                {term.items.map(s => <SubjectCard key={s.id} subject={s} />)}
+                {term.items.map(s => <SubjectCard key={s.id} subject={s} editMode={editMode} onCycleStatus={onCycleStatus} />)}
               </div>
             </div>
           ))}
@@ -675,21 +528,53 @@ function FlowTab({ subjects }) {
   );
 }
 
-// ─── MAIN ─────────────────────────────────────────────────────────────────────
-export default function AcademicDashboard() {
+// ─── DASHBOARD (autenticado) ──────────────────────────────────────────────────
+function Dashboard({ userKey, displayName, onLogout }) {
   const [tab, setTab] = useState("overview");
   const [faltas, setFaltas] = useState({});
+  const [statusOverrides, setStatusOverrides] = useState({});
+  const [editMode, setEditMode] = useState(false);
+  const loadedRef = useRef(false);
+
+  // Carrega os dados isolados deste usuário ao entrar
+  useEffect(() => {
+    const data = loadUserData(userKey);
+    setFaltas(data.faltas);
+    setStatusOverrides(data.statusOverrides);
+    loadedRef.current = true;
+  }, [userKey]);
+
+  // Persiste alterações apenas na conta do usuário logado
+  useEffect(() => {
+    if (!loadedRef.current) return;
+    saveUserData(userKey, { faltas, statusOverrides });
+  }, [userKey, faltas, statusOverrides]);
+
+  const subjects = useMemo(() => DEFAULT_SUBJECTS.map(s => ({
+    ...s,
+    status: statusOverrides[s.id] || s.status,
+  })), [statusOverrides]);
+
+  function cycleStatus(id) {
+    setStatusOverrides(prev => {
+      const base = DEFAULT_SUBJECTS.find(s => s.id === id);
+      const current = prev[id] || base.status;
+      const idx = STATUS_ORDER.indexOf(current);
+      const next = STATUS_ORDER[(idx + 1) % STATUS_ORDER.length];
+      return { ...prev, [id]: next };
+    });
+  }
 
   const stats = useMemo(() => {
-    const done    = SUBJECTS.filter(s => s.status === "done").length;
-    const current = SUBJECTS.filter(s => s.status === "current").length;
-    const future  = SUBJECTS.filter(s => s.status !== "done" && s.status !== "current").length;
-    const total   = SUBJECTS.length;
+    const done    = subjects.filter(s => s.status === "done").length;
+    const current = subjects.filter(s => s.status === "current").length;
+    const future  = subjects.filter(s => s.status !== "done" && s.status !== "current").length;
+    const total   = subjects.length;
     return { done, current, future, total, pct: Math.round((done / total) * 100) };
-  }, []);
+  }, [subjects]);
 
-  const doneSubs = SUBJECTS.filter(s => s.status === "done");
-  const alertCount = SUBJECTS.filter(s => {
+  const doneSubs = subjects.filter(s => s.status === "done");
+  const alertCount = subjects.filter(s => {
     if (!ATTENDANCE_META[s.id]) return false;
     const { state } = calcAbsence(ATTENDANCE_META[s.id], faltas[s.id] || 0);
     return state !== "safe";
@@ -705,6 +590,24 @@ export default function AcademicDashboard() {
   return (
     <div className="min-h-screen bg-slate-950 text-white p-4 md:p-6 lg:p-8" style={{ fontFamily: "system-ui, sans-serif" }}>
       <div className="max-w-6xl mx-auto space-y-6">
+
+        <div className="flex items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-1.5 text-slate-500">
+            <User size={12} />
+            <span>{displayName}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setEditMode(e => !e)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-colors
+                ${editMode ? "border-violet-500 text-violet-400 bg-violet-500/10" : "border-slate-800 text-slate-500 hover:text-white hover:border-slate-700"}`}>
+              <Pencil size={12} /> {editMode ? "Concluir edição" : "Editar progresso"}
+            </button>
+            <button onClick={onLogout}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-800 text-slate-500 hover:text-white hover:border-slate-700 transition-colors">
+              <LogOut size={12} /> Sair
+            </button>
+          </div>
+        </div>
 
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
@@ -741,8 +644,8 @@ export default function AcademicDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard icon={CheckCircle2} label="Concluídas" value={stats.done}    color="emerald" />
           <StatCard icon={BookOpen}     label="Cursando"   value={stats.current} color="violet" />
-          <StatCard icon={Star}         label="Próximas"   value={SUBJECTS.filter(s=>s.status==="next").length}   color="sky" />
-          <StatCard icon={Clock}        label="Futuras"    value={SUBJECTS.filter(s=>s.status==="future").length} color="slate" />
+          <StatCard icon={Star}         label="Próximas"   value={subjects.filter(s=>s.status==="next").length}   color="sky" />
+          <StatCard icon={Clock}        label="Futuras"    value={subjects.filter(s=>s.status==="future").length} color="slate" />
         </div>
 
         <details className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
@@ -776,15 +679,34 @@ export default function AcademicDashboard() {
             ))}
           </div>
           <div className="p-5">
-            {tab === "overview" && <OverviewTab subjects={SUBJECTS} />}
+            {tab === "overview" && <OverviewTab subjects={subjects} editMode={editMode} onCycleStatus={cycleStatus} />}
             {tab === "schedule" && <ScheduleTab />}
-            {tab === "absence"  && <AbsenceTab subjects={SUBJECTS} faltas={faltas} setFaltas={setFaltas} />}
-            {tab === "flow"     && <FlowTab subjects={SUBJECTS} />}
+            {tab === "absence"  && <AbsenceTab subjects={subjects} faltas={faltas} setFaltas={setFaltas} />}
+            {tab === "flow"     && <FlowTab subjects={subjects} />}
           </div>
         </div>
 
-        <p className="text-center text-xs text-slate-700 pb-4">GIDEON Academic · João Heitor · ENC 2026/1</p>
+        <p className="text-center text-xs text-slate-700 pb-4">GIDEON Academic · ENC 2026/1</p>
       </div>
     </div>
+  );
+}
+
+// ─── MAIN ─────────────────────────────────────────────────────────────────────
+export default function AcademicDashboard() {
+  const [userKey, setUserKey] = useState(() => getSession());
+
+  if (!userKey) {
+    return (
+      <AuthScreen onAuthenticated={(key) => { setSession(key); setUserKey(key); }} />
+    );
+  }
+
+  return (
+    <Dashboard
+      userKey={userKey}
+      displayName={getDisplayName(userKey)}
+      onLogout={() => { setSession(null); setUserKey(null); }}
+    />
   );
 }
