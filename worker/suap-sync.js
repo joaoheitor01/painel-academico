@@ -123,11 +123,20 @@ function encontrarId(nomeSuap) {
   return melhorId;
 }
 
+// ─── Mapeamento situação (SUAP) → status (painel) ──────────────────────────
+const SITUACOES_DONE = ["aprovado"];
+const SITUACOES_CURRENT = [
+  "cursando",
+  "andamento",
+  "prova final",
+  "segunda chamada",
+  "reprovado por nota", // ainda aparece no semestre atual
+];
+
 // ─── Parsing do boletim (sem DOM disponível no Worker) ─────────────────────
 function parseBoletim(html) {
   const faltas = {};
   const statusOverrides = {};
-  const diagnostico = []; // TODO: remover antes do commit final
 
   const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   const stripTagsRegex = /<[^>]+>/g;
@@ -152,10 +161,7 @@ function parseBoletim(html) {
     if (!nome) continue;
 
     const encId = encontrarId(nome);
-    if (!encId) {
-      diagnostico.push({ nome, id: "NÃO RECONHECIDO", situacao: null, faltas: null });
-      continue;
-    }
+    if (!encId) continue;
 
     // Coluna [4]: faltas
     const faltasStr = cells[4] || "0";
@@ -164,19 +170,19 @@ function parseBoletim(html) {
     // Coluna [6]: situação (confirmada a partir da ordem de campos do suap_sync.py)
     const situacao = (cells[6] || "").toLowerCase().trim();
 
-    if (situacao.includes("aprovado")) {
+    const isDone = SITUACOES_DONE.some(s => situacao.includes(s));
+    const isActive = SITUACOES_CURRENT.some(s => situacao.includes(s))
+                     || situacao === "-"
+                     || situacao === "";
+
+    if (isDone) {
       statusOverrides[encId] = "done";
-    } else if (situacao === "-" || situacao.includes("andamento") || situacao === "") {
+    } else if (isActive) {
       statusOverrides[encId] = "current";
       faltas[encId] = faltasNum;
     }
-    // "reprovado" / "reprovado por falta" → não altera, deixa o usuário decidir
-
-    diagnostico.push({ nome, id: encId, situacao, faltas: faltasNum });
+    // "reprovado por falta" → não altera, deixa o usuário decidir
   }
-
-  // TODO: remover antes do commit final
-  console.log("SUAP rows:", JSON.stringify(diagnostico));
 
   return { faltas, statusOverrides };
 }
@@ -210,7 +216,7 @@ function findCookieValue(jar, suffix) {
 export default {
   async fetch(request) {
     if (request.method === "OPTIONS") {
-      return new Response("", { status: 204, headers: corsHeaders() });
+      return new Response(null, { status: 204, headers: corsHeaders() });
     }
 
     if (request.method !== "POST") {
