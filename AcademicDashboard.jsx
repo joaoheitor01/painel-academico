@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   CheckCircle2, Circle, BookOpen, Zap, ChevronRight,
   BarChart3, GitBranch, GraduationCap, Clock, Star,
@@ -529,31 +529,34 @@ function FlowTab({ subjects }) {
 }
 
 // ─── DASHBOARD (autenticado) ──────────────────────────────────────────────────
+const OWNER_USERNAME = "joaoheitor01";
+
 function Dashboard({ userKey, displayName, onLogout }) {
   const [tab, setTab] = useState("overview");
   const [faltas, setFaltas] = useState({});
   const [statusOverrides, setStatusOverrides] = useState({});
   const [editMode, setEditMode] = useState(false);
-  const loadedRef = useRef(false);
+  const [hydratedFor, setHydratedFor] = useState(null);
 
   // Carrega os dados isolados deste usuário ao entrar
   useEffect(() => {
+    setHydratedFor(null);
     const data = loadUserData(userKey);
     setFaltas(data.faltas);
     setStatusOverrides(data.statusOverrides);
-    loadedRef.current = true;
+    setHydratedFor(userKey);
   }, [userKey]);
 
   // Persiste alterações apenas na conta do usuário logado
   useEffect(() => {
-    if (!loadedRef.current) return;
+    if (hydratedFor !== userKey) return;
     saveUserData(userKey, { faltas, statusOverrides });
-  }, [userKey, faltas, statusOverrides]);
+  }, [hydratedFor, userKey, faltas, statusOverrides]);
 
   const subjects = useMemo(() => DEFAULT_SUBJECTS.map(s => ({
     ...s,
-    status: statusOverrides[s.id] || s.status,
-  })), [statusOverrides]);
+    status: statusOverrides[s.id] ?? (userKey === OWNER_USERNAME ? s.status : "future"),
+  })), [statusOverrides, userKey]);
 
   function cycleStatus(id) {
     setStatusOverrides(prev => {
