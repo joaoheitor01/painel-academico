@@ -1,0 +1,6 @@
+name = "suap-sync"
+main = "suap-sync.js"
+compatibility_date = "2024-01-01"
+
+# Sem KV, sem D1, sem bindings — Worker puro, stateless
+# O nome "suap-sync" gera a URL: suap-sync.<seu-subdomínio>.workers.dev

@@ -4,7 +4,7 @@ import {
   BarChart3, GitBranch, GraduationCap, Clock, Star,
   ArrowRight, Layers, TrendingUp, Network, Calendar,
   AlertTriangle, XCircle, Shield, Minus, Plus, CalendarDays,
-  User, LogOut, Pencil
+  User, LogOut, Pencil, RefreshCw
 } from "lucide-react";
 import AuthScreen from "./AuthScreen";
 import { getSession, setSession, getDisplayName } from "./auth";
@@ -528,8 +528,61 @@ function FlowTab({ subjects }) {
   );
 }
 
+// ─── SUAP SYNC MODAL ──────────────────────────────────────────────────────────
+function SuapModal({ onSync, onClose, loading, error }) {
+  const [matricula, setMatricula] = useState("");
+  const [senha, setSenha] = useState("");
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-white">Sincronizar com SUAP</h2>
+          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
+            <XCircle size={16} />
+          </button>
+        </div>
+        <p className="text-xs text-slate-500">
+          Suas credenciais são enviadas uma única vez ao Worker e nunca armazenadas.
+          As faltas ficam salvas localmente na sua conta.
+        </p>
+        <div className="space-y-2">
+          <input value={matricula} onChange={e => setMatricula(e.target.value)}
+            placeholder="Matrícula SUAP"
+            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5
+              text-sm text-white placeholder-slate-600 focus:outline-none
+              focus:border-violet-500 transition-colors" />
+          <input type="password" value={senha} onChange={e => setSenha(e.target.value)}
+            placeholder="Senha"
+            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5
+              text-sm text-white placeholder-slate-600 focus:outline-none
+              focus:border-violet-500 transition-colors" />
+        </div>
+        {error && (
+          <div className="rounded-xl bg-red-500/10 border border-red-500/30 px-3 py-2">
+            <p className="text-xs text-red-400">{error}</p>
+          </div>
+        )}
+        <div className="flex gap-2">
+          <button onClick={onClose} disabled={loading}
+            className="flex-1 py-2 rounded-xl border border-slate-700 text-sm text-slate-400
+              hover:text-white hover:border-slate-600 transition-colors">
+            Cancelar
+          </button>
+          <button onClick={() => onSync(matricula, senha)}
+            disabled={loading || !matricula || !senha}
+            className="flex-1 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-sm
+              font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            {loading ? "Sincronizando..." : "Sincronizar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── DASHBOARD (autenticado) ──────────────────────────────────────────────────
 const OWNER_USERNAME = "joaoheitor01";
+const WORKER_URL = "https://suap-sync.painel-academico-2026.workers.dev";
 
 function Dashboard({ userKey, displayName, onLogout }) {
   const [tab, setTab] = useState("overview");
@@ -537,6 +590,9 @@ function Dashboard({ userKey, displayName, onLogout }) {
   const [statusOverrides, setStatusOverrides] = useState({});
   const [editMode, setEditMode] = useState(false);
   const [hydratedFor, setHydratedFor] = useState(null);
+  const [suapModal, setSuapModal] = useState(false);
+  const [suapLoading, setSuapLoading] = useState(false);
+  const [suapError, setSuapError] = useState("");
 
   // Carrega os dados isolados deste usuário ao entrar
   useEffect(() => {
@@ -590,6 +646,33 @@ function Dashboard({ userKey, displayName, onLogout }) {
     { id: "flow",      label: "Análise de Fluxo", icon: GitBranch },
   ];
 
+  async function sincronizarSUAP(matricula, senha) {
+    setSuapLoading(true);
+    setSuapError("");
+    try {
+      const resp = await fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matricula, senha }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.erro || "Erro desconhecido");
+
+      // Aplica faltas
+      setFaltas(prev => ({ ...prev, ...data.faltas }));
+
+      // Aplica status (Aprovado → done, Cursando → current)
+      // Usa merge: SUAP tem precedência, mas não apaga o que não veio do SUAP
+      setStatusOverrides(prev => ({ ...prev, ...data.statusOverrides }));
+
+      setSuapModal(false);
+    } catch (err) {
+      setSuapError(err.message);
+    } finally {
+      setSuapLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-white p-4 md:p-6 lg:p-8" style={{ fontFamily: "system-ui, sans-serif" }}>
       <div className="max-w-6xl mx-auto space-y-6">
@@ -600,6 +683,12 @@ function Dashboard({ userKey, displayName, onLogout }) {
             <span>{displayName}</span>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={() => setSuapModal(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border
+                border-slate-800 text-slate-500 hover:text-white hover:border-slate-700
+                transition-colors">
+              <RefreshCw size={12} /> Sincronizar SUAP
+            </button>
             <button onClick={() => setEditMode(e => !e)}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-colors
                 ${editMode ? "border-violet-500 text-violet-400 bg-violet-500/10" : "border-slate-800 text-slate-500 hover:text-white hover:border-slate-700"}`}>
@@ -691,6 +780,15 @@ function Dashboard({ userKey, displayName, onLogout }) {
 
         <p className="text-center text-xs text-slate-700 pb-4">GIDEON Academic · ENC 2026/1</p>
       </div>
+
+      {suapModal && (
+        <SuapModal
+          onSync={sincronizarSUAP}
+          onClose={() => { setSuapModal(false); setSuapError(""); }}
+          loading={suapLoading}
+          error={suapError}
+        />
+      )}
     </div>
   );
 }
