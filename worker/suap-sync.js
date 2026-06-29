@@ -181,6 +181,32 @@ function parseBoletim(html) {
   return { faltas, statusOverrides };
 }
 
+// ─── Cookie jar ─────────────────────────────────────────────────────────────
+// O SUAP usa o esquema de cookies com prefixo "__Host-" (ex.: __Host-csrftoken,
+// __Host-sessionid), não os nomes simples "csrftoken"/"sessionid". Por isso
+// mantemos um jar que repassa TODOS os cookies recebidos entre requisições
+// (igual ao requests.Session do Python), e localizamos os que precisamos
+// por sufixo do nome em vez de assumir o nome exato.
+function mergeCookies(jar, setCookies) {
+  for (const c of setCookies) {
+    const pair = c.split(";")[0];
+    const eq = pair.indexOf("=");
+    if (eq === -1) continue;
+    jar.set(pair.slice(0, eq).trim(), pair.slice(eq + 1).trim());
+  }
+}
+
+function cookieHeader(jar) {
+  return Array.from(jar.entries()).map(([k, v]) => `${k}=${v}`).join("; ");
+}
+
+function findCookieValue(jar, suffix) {
+  for (const [name, value] of jar) {
+    if (name.endsWith(suffix)) return value;
+  }
+  return null;
+}
+
 export default {
   async fetch(request) {
     if (request.method === "OPTIONS") {
@@ -203,15 +229,16 @@ export default {
       return respJson(400, { erro: "matricula e senha são obrigatórios" });
     }
 
+    const jar = new Map();
+
     try {
       // STEP A — GET csrftoken
-      const loginPage = await fetch(`${SUAP_BASE}/accounts/login/`, {
+      const loginUrl = `${SUAP_BASE}/accounts/login/`;
+      const loginPage = await fetch(loginUrl, {
         headers: { "User-Agent": "Mozilla/5.0" },
       });
-
-      const setCookies = loginPage.headers.getSetCookie();
-      const csrfCookie = setCookies.find((c) => c.startsWith("csrftoken="));
-      const csrfToken = csrfCookie?.split(";")[0].split("=")[1];
+      mergeCookies(jar, loginPage.headers.getSetCookie());
+      const csrfToken = findCookieValue(jar, "csrftoken");
 
       const html = await loginPage.text();
       const csrfMiddleware = html.match(/name="csrfmiddlewaretoken" value="([^"]+)"/)?.[1];
@@ -228,13 +255,13 @@ export default {
         next: "/",
       });
 
-      const loginResp = await fetch(`${SUAP_BASE}/accounts/login/`, {
+      const loginResp = await fetch(loginUrl, {
         method: "POST",
         redirect: "manual",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          "Cookie": `csrftoken=${csrfToken}`,
-          "Referer": `${SUAP_BASE}/accounts/login/`,
+          "Cookie": cookieHeader(jar),
+          "Referer": loginUrl,
           "User-Agent": "Mozilla/5.0",
         },
         body: loginBody.toString(),
@@ -244,9 +271,8 @@ export default {
         return respJson(401, { erro: "credenciais inválidas" });
       }
 
-      const loginCookies = loginResp.headers.getSetCookie();
-      const sessionCookie = loginCookies.find((c) => c.startsWith("sessionid="));
-      const sessionId = sessionCookie?.split(";")[0].split("=")[1];
+      mergeCookies(jar, loginResp.headers.getSetCookie());
+      const sessionId = findCookieValue(jar, "sessionid");
 
       if (!sessionId) {
         return respJson(502, { erro: "sessionid não encontrado" });
@@ -256,7 +282,7 @@ export default {
       const boletimUrl = `${SUAP_BASE}/edu/aluno/${encodeURIComponent(matricula)}/?tab=boletim`;
       const boletimResp = await fetch(boletimUrl, {
         headers: {
-          "Cookie": `csrftoken=${csrfToken}; sessionid=${sessionId}`,
+          "Cookie": cookieHeader(jar),
           "User-Agent": "Mozilla/5.0",
         },
       });
