@@ -124,20 +124,32 @@ function encontrarId(nomeSuap) {
 }
 
 // ─── Mapeamento situação (SUAP) → status (painel) ──────────────────────────
-const SITUACOES_DONE = ["aprovado"];
-const SITUACOES_CURRENT = [
-  "cursando",
-  "andamento",
-  "prova final",
-  "segunda chamada",
-  "reprovado por nota", // ainda aparece no semestre atual
-];
+// "done": disciplina integralizada (aprovada, dispensada, aproveitada).
+const SITUACOES_DONE = ["aprovado", "dispensado", "aproveitamento", "concluído", "cumprida"];
+// "current": disciplina ativa no período (em curso ou ainda em definição).
+const SITUACOES_CURRENT = ["cursando", "andamento", "prova final", "segunda chamada", "exame final", "matriculado"];
+// Qualquer "reprovado *" (por nota/falta) ou situação desconhecida → NÃO altera:
+// o Worker não sabe se o aluno vai cursar de novo, então deixa o usuário decidir.
 
-// ─── Parsing do boletim (sem DOM disponível no Worker) ─────────────────────
-function parseBoletim(html) {
-  const faltas = {};
-  const statusOverrides = {};
+// ─── Descoberta dos períodos letivos (<select id="ano_periodo">) ───────────
+// O boletim do SUAP mostra UM período por vez (default = atual). Os demais
+// ficam nas <option> de um <select>, navegáveis via ?ano_periodo=YYYY_S.
+export function extrairPeriodos(html) {
+  const sel = html.match(/<select[^>]*id="ano_periodo"[\s\S]*?<\/select>/i)?.[0] || "";
+  const periodos = [];
+  const optRegex = /<option[^>]*value="([^"]+)"/gi;
+  let m;
+  while ((m = optRegex.exec(sel)) !== null) {
+    if (m[1]) periodos.push(m[1]);
+  }
+  return periodos; // ex.: ["2026_1","2025_2","2025_1","2024_2","2024_1"]
+}
 
+// ─── Parsing de UMA página de boletim (sem DOM disponível no Worker) ───────
+// Acumula em faltas/statusOverrides. first-write-wins: como as páginas são
+// varridas do período MAIS NOVO para o mais antigo, o estado mais recente de
+// cada disciplina prevalece (ex.: reprovou e depois foi aprovado → "done").
+export function parseBoletimPagina(html, faltas, statusOverrides) {
   const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   const stripTagsRegex = /<[^>]+>/g;
 
@@ -148,10 +160,11 @@ function parseBoletim(html) {
     const cells = [];
     let cellMatch;
     while ((cellMatch = cellRegex.exec(rowHtml)) !== null) {
-      cells.push(cellMatch[1].replace(stripTagsRegex, "").trim());
+      // colapsa quebras de linha/indentação do HTML (ex.: nome em "Normal.1294\n  - Cálculo Numérico")
+      cells.push(cellMatch[1].replace(stripTagsRegex, "").replace(/\s+/g, " ").trim());
     }
 
-    if (cells.length < 7) continue; // precisa de cols[0..6]; pula cabeçalho/linhas vazias
+    if (cells.length < 7) continue; // precisa de cols[0..6]; pula cabeçalho/tfoot/linhas vazias
 
     // Coluna [1]: nome da disciplina (remove prefixo "Normal.XXXX - ")
     const nomeBruto = cells[1] || "";
@@ -162,29 +175,20 @@ function parseBoletim(html) {
 
     const encId = encontrarId(nome);
     if (!encId) continue;
+    if (encId in statusOverrides) continue; // first-write-wins (período mais novo já decidiu)
 
-    // Coluna [4]: faltas
-    const faltasStr = cells[4] || "0";
-    const faltasNum = parseInt(faltasStr.replace(/\D/g, "") || "0", 10);
-
-    // Coluna [6]: situação (confirmada a partir da ordem de campos do suap_sync.py)
+    // Coluna [4]: total de faltas | Coluna [6]: situação
+    const faltasNum = parseInt((cells[4] || "0").replace(/\D/g, "") || "0", 10);
     const situacao = (cells[6] || "").toLowerCase().trim();
 
-    const isDone = SITUACOES_DONE.some(s => situacao.includes(s));
-    const isActive = SITUACOES_CURRENT.some(s => situacao.includes(s))
-                     || situacao === "-"
-                     || situacao === "";
-
-    if (isDone) {
+    if (SITUACOES_DONE.some(s => situacao.includes(s))) {
       statusOverrides[encId] = "done";
-    } else if (isActive) {
+    } else if (SITUACOES_CURRENT.some(s => situacao.includes(s))) {
       statusOverrides[encId] = "current";
       faltas[encId] = faltasNum;
     }
-    // "reprovado por falta" → não altera, deixa o usuário decidir
+    // reprovado / desconhecido → não altera
   }
-
-  return { faltas, statusOverrides };
 }
 
 // ─── Cookie jar ─────────────────────────────────────────────────────────────
@@ -284,18 +288,29 @@ export default {
         return respJson(502, { erro: "sessionid não encontrado" });
       }
 
-      // STEP C — Fetch boletim
-      const boletimUrl = `${SUAP_BASE}/edu/aluno/${encodeURIComponent(matricula)}/?tab=boletim`;
-      const boletimResp = await fetch(boletimUrl, {
-        headers: {
-          "Cookie": cookieHeader(jar),
-          "User-Agent": "Mozilla/5.0",
-        },
-      });
-      const boletimHtml = await boletimResp.text();
+      // STEP C — Fetch boletim do período atual + descobrir todos os períodos
+      const headersBoletim = { "Cookie": cookieHeader(jar), "User-Agent": "Mozilla/5.0" };
+      const baseUrl = `${SUAP_BASE}/edu/aluno/${encodeURIComponent(matricula)}/?tab=boletim`;
 
-      // STEP D — parseBoletim
-      const { faltas, statusOverrides } = parseBoletim(boletimHtml);
+      const primeiraResp = await fetch(baseUrl, { headers: headersBoletim });
+      const primeiroHtml = await primeiraResp.text();
+      const periodos = extrairPeriodos(primeiroHtml);
+
+      // STEP D — parseBoletim de TODOS os períodos (mais novo → mais antigo)
+      const faltas = {};
+      const statusOverrides = {};
+
+      if (periodos.length === 0) {
+        // Sem seletor de períodos: parseia ao menos a página atual.
+        parseBoletimPagina(primeiroHtml, faltas, statusOverrides);
+      } else {
+        for (const p of periodos) {
+          const url = `${baseUrl}&ano_periodo=${encodeURIComponent(p)}`;
+          const resp = await fetch(url, { headers: headersBoletim });
+          const html = await resp.text();
+          parseBoletimPagina(html, faltas, statusOverrides);
+        }
+      }
 
       return respJson(200, { faltas, statusOverrides });
     } catch (err) {
