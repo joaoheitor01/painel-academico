@@ -155,7 +155,15 @@ const limparNota = (s) => {
 // Acumula em faltas/statusOverrides/notas. first-write-wins: como as páginas
 // são varridas do período MAIS NOVO para o mais antigo, o estado mais recente
 // de cada disciplina prevalece (ex.: reprovou e depois foi aprovado → "done").
-export function parseBoletimPagina(html, faltas, statusOverrides, notas) {
+//
+// isPeriodoAtivo: true apenas para o período letivo corrente (o selecionado
+// por padrão no boletim, primeiro item do <select>). Enquanto o período
+// ainda não terminou, disciplinas já lançadas como "Aprovado" no SUAP
+// continuam aparecendo como "Cursando" no painel — o professor pode postar
+// a nota final antes do fim do semestre, mas o aluno ainda está cursando o
+// período. Só quando o período sai do <select> como "atual" (i.e., vira
+// histórico numa sincronização futura) é que a disciplina passa a "done".
+export function parseBoletimPagina(html, faltas, statusOverrides, notas, isPeriodoAtivo = false) {
   const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   const stripTagsRegex = /<[^>]+>/g;
 
@@ -187,9 +195,22 @@ export function parseBoletimPagina(html, faltas, statusOverrides, notas) {
     const faltasNum = parseInt((cells[4] || "0").replace(/\D/g, "") || "0", 10);
     const situacao = (cells[6] || "").toLowerCase().trim();
 
-    if (SITUACOES_DONE.some(s => situacao.includes(s))) {
+    const isDone = SITUACOES_DONE.some(s => situacao.includes(s));
+    const isCurrent = SITUACOES_CURRENT.some(s => situacao.includes(s));
+
+    if (isPeriodoAtivo && (isDone || isCurrent)) {
+      // Período letivo em andamento: força "current" mesmo se já "Aprovado".
+      statusOverrides[encId] = "current";
+      faltas[encId] = faltasNum;
+      notas[encId] = {
+        p1:    limparNota(cells[7]),
+        media: limparNota(cells[9]),
+        af:    limparNota(cells[10]),
+        mfd:   limparNota(cells[12]),
+      };
+    } else if (isDone) {
       statusOverrides[encId] = "done";
-    } else if (SITUACOES_CURRENT.some(s => situacao.includes(s))) {
+    } else if (isCurrent) {
       statusOverrides[encId] = "current";
       faltas[encId] = faltasNum;
       // Notas apenas das disciplinas em curso: [7]=P1, [9]=Média, [10]=AF, [12]=MFD
@@ -200,7 +221,7 @@ export function parseBoletimPagina(html, faltas, statusOverrides, notas) {
         mfd:   limparNota(cells[12]),
       };
     }
-    // reprovado / desconhecido → não altera
+    // reprovado / cancelado / desconhecido → não altera
   }
 }
 
@@ -315,14 +336,17 @@ export default {
       const notas = {};
 
       if (periodos.length === 0) {
-        // Sem seletor de períodos: parseia ao menos a página atual.
-        parseBoletimPagina(primeiroHtml, faltas, statusOverrides, notas);
+        // Sem seletor de períodos: parseia ao menos a página atual (é o período ativo).
+        parseBoletimPagina(primeiroHtml, faltas, statusOverrides, notas, true);
       } else {
-        for (const p of periodos) {
-          const url = `${baseUrl}&ano_periodo=${encodeURIComponent(p)}`;
+        // periodos[0] é o período ativo (primeira opção do <select>, já carregada
+        // em primeiroHtml — evita um fetch redundante). Os demais são históricos.
+        parseBoletimPagina(primeiroHtml, faltas, statusOverrides, notas, true);
+        for (let i = 1; i < periodos.length; i++) {
+          const url = `${baseUrl}&ano_periodo=${encodeURIComponent(periodos[i])}`;
           const resp = await fetch(url, { headers: headersBoletim });
           const html = await resp.text();
-          parseBoletimPagina(html, faltas, statusOverrides, notas);
+          parseBoletimPagina(html, faltas, statusOverrides, notas, false);
         }
       }
 
