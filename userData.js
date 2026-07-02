@@ -1,23 +1,29 @@
 // ─── DADOS POR USUÁRIO ────────────────────────────────────────────────────────
-// Cada conta tem seu próprio progresso (statusOverrides) e suas próprias
-// faltas, isolados sob uma chave exclusiva no localStorage.
+// Cada conta tem seu próprio progresso (statusOverrides), faltas e notas,
+// isolados sob uma chave exclusiva no localStorage.
 
 const dataKey = (userKey) => `painel-academico:data:${userKey}`;
+
+const DEFAULT_USER_DATA = {
+  faltas: {},
+  statusOverrides: {},
+  notas: {},
+};
 
 export function loadUserData(userKey) {
   try {
     const raw = localStorage.getItem(dataKey(userKey));
-    if (!raw) return { statusOverrides: {}, faltas: {} };
-    const parsed = JSON.parse(raw);
+    const parsed = raw ? JSON.parse(raw) : {};
     return {
-      statusOverrides: parsed.statusOverrides || {},
       faltas: parsed.faltas || {},
+      statusOverrides: parsed.statusOverrides || {},
+      notas: parsed.notas || {},
     };
   } catch {
-    return { statusOverrides: {}, faltas: {} };
+    return { faltas: {}, statusOverrides: {}, notas: {} };
   }
 }
 
 export function saveUserData(userKey, data) {
-  localStorage.setItem(dataKey(userKey), JSON.stringify(data));
+  localStorage.setItem(dataKey(userKey), JSON.stringify({ ...DEFAULT_USER_DATA, ...data }));
 }

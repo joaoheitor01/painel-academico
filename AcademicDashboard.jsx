@@ -187,15 +187,72 @@ function ScheduleTab() {
   );
 }
 
-function AbsenceTab({ subjects, faltas, setFaltas }) {
+// Badge da média parcial (Parte 4). "-" (sem nota) → "Aguardando".
+function notaBadge(media) {
+  const m = parseFloat(media);
+  if (media === "-" || Number.isNaN(m)) return { cls: "bg-gray-50 text-gray-400", label: "Aguardando" };
+  if (m >= 6.0) return { cls: "bg-green-50 text-green-700", label: "Aprovado" };
+  if (m >= 4.0) return { cls: "bg-amber-50 text-amber-700", label: "Prova Final" };
+  return { cls: "bg-red-50 text-red-700", label: "Reprovado" };
+}
+
+function NotaCard({ subject, nota, faltasCount }) {
+  const meta = ATTENDANCE_META[subject.id];
+  const n = nota || { p1: "-", media: "-", af: "-", mfd: "-" };
+  const badge = notaBadge(n.media);
+  const mediaNum = parseFloat(n.media);
+  const absState = meta ? calcAbsence(meta, faltasCount).state : "safe";
+  const topBorder = absState === "danger" ? "border-red-500"
+    : (!Number.isNaN(mediaNum) && mediaNum >= 4 && mediaNum < 6) ? "border-amber-400"
+    : "border-gray-300";
+  const valClass = (v) => `text-xl leading-none ${v === "-" ? "text-gray-300 font-normal" : "text-gray-900 font-semibold"}`;
+  return (
+    <div className={`rounded-xl border border-gray-200 border-t-2 ${topBorder} bg-white overflow-hidden shadow-sm`}>
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-2 pb-3 mb-3 border-b border-gray-100">
+          <div>
+            <span className="text-xs text-gray-500 font-medium">{subject.id}</span>
+            <h4 className="text-sm font-bold text-gray-900 leading-snug">{subject.name}</h4>
+          </div>
+          {meta && <span className="text-xs text-gray-500 shrink-0">{meta.cargaHoraria}h</span>}
+        </div>
+        <div className="grid grid-cols-4 gap-2 text-center pb-3 mb-3 border-b border-gray-100">
+          {[["P1", n.p1], ["Média", n.media], ["AF", n.af], ["MFD", n.mfd]].map(([label, v]) => (
+            <div key={label}>
+              <p className="text-gray-400 text-xs uppercase mb-1.5">{label}</p>
+              <p className={valClass(v)}>{v}</p>
+            </div>
+          ))}
+        </div>
+        <span className={`inline-block text-xs px-2.5 py-1 rounded-full font-medium ${badge.cls}`}>{badge.label}</span>
+      </div>
+    </div>
+  );
+}
+
+function AbsenceTab({ subjects, faltas, setFaltas, notas, onOpenSuap }) {
+  const [view, setView] = useState("freq");
   const currentSubs = subjects.filter(s => s.status === "current" && ATTENDANCE_META[s.id]);
   const alerts = currentSubs.filter(s => {
     const { state } = calcAbsence(ATTENDANCE_META[s.id], faltas[s.id] || 0);
     return state !== "safe";
   });
+  const temNotas = Object.keys(notas || {}).length > 0;
 
   return (
     <div className="space-y-6">
+      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+        {[["freq", "Frequência"], ["notas", "Notas"]].map(([k, label]) => (
+          <button key={k} onClick={() => setView(k)}
+            className={`px-3.5 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+              view === k ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {view === "freq" ? (
+        <>
       {alerts.length > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -279,6 +336,28 @@ function AbsenceTab({ subjects, faltas, setFaltas }) {
             </div>
           </div>
         </>
+      )}
+        </>
+      ) : (
+        !temNotas ? (
+          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+            <p className="text-sm text-gray-500 mb-4">Sincronize com o SUAP para ver suas notas.</p>
+            <button onClick={onOpenSuap}
+              className="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+              <RefreshCw size={14} /> Sincronizar SUAP
+            </button>
+          </div>
+        ) : currentSubs.length === 0 ? (
+          <div className="rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm">
+            <p className="text-sm text-gray-500">Nenhuma disciplina em curso para exibir notas.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {currentSubs.map(s => (
+              <NotaCard key={s.id} subject={s} nota={notas[s.id]} faltasCount={faltas[s.id] || 0} />
+            ))}
+          </div>
+        )
       )}
     </div>
   );
@@ -560,6 +639,7 @@ function Dashboard({ userKey, displayName, onLogout }) {
   const [tab, setTab] = useState("overview");
   const [faltas, setFaltas] = useState({});
   const [statusOverrides, setStatusOverrides] = useState({});
+  const [notas, setNotas] = useState({});
   const [editMode, setEditMode] = useState(false);
   const [hydratedFor, setHydratedFor] = useState(null);
   const [suapModal, setSuapModal] = useState(false);
@@ -571,13 +651,14 @@ function Dashboard({ userKey, displayName, onLogout }) {
     const data = loadUserData(userKey);
     setFaltas(data.faltas);
     setStatusOverrides(data.statusOverrides);
+    setNotas(data.notas);
     setHydratedFor(userKey);
   }, [userKey]);
 
   useEffect(() => {
     if (hydratedFor !== userKey) return;
-    saveUserData(userKey, { faltas, statusOverrides });
-  }, [hydratedFor, userKey, faltas, statusOverrides]);
+    saveUserData(userKey, { faltas, statusOverrides, notas });
+  }, [hydratedFor, userKey, faltas, statusOverrides, notas]);
 
   const subjects = useMemo(() => DEFAULT_SUBJECTS.map(s => ({
     ...s,
@@ -628,6 +709,7 @@ function Dashboard({ userKey, displayName, onLogout }) {
       if (!resp.ok) throw new Error(data.erro || "Erro desconhecido");
       setFaltas(prev => ({ ...prev, ...data.faltas }));
       setStatusOverrides(prev => ({ ...prev, ...data.statusOverrides }));
+      setNotas(prev => ({ ...prev, ...(data.notas || {}) }));
       setSuapModal(false);
     } catch (err) {
       setSuapError(err.message);
@@ -781,7 +863,7 @@ function Dashboard({ userKey, displayName, onLogout }) {
               <div className="p-5">
                 {tab === "overview" && <OverviewTab subjects={subjects} editMode={editMode} onCycleStatus={cycleStatus} />}
                 {tab === "schedule" && <ScheduleTab />}
-                {tab === "absence"  && <AbsenceTab subjects={subjects} faltas={faltas} setFaltas={setFaltas} />}
+                {tab === "absence"  && <AbsenceTab subjects={subjects} faltas={faltas} setFaltas={setFaltas} notas={notas} onOpenSuap={() => setSuapModal(true)} />}
                 {tab === "flow"     && <FlowTab subjects={subjects} />}
               </div>
             </div>

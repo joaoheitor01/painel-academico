@@ -145,11 +145,17 @@ export function extrairPeriodos(html) {
   return periodos; // ex.: ["2026_1","2025_2","2025_1","2024_2","2024_1"]
 }
 
+// Normaliza uma célula de nota: vírgula decimal do SUAP → ponto; vazio ou "-" vira "-".
+const limparNota = (s) => {
+  const t = (s || "").trim();
+  return t && t !== "-" ? t.replace(",", ".") : "-";
+};
+
 // ─── Parsing de UMA página de boletim (sem DOM disponível no Worker) ───────
-// Acumula em faltas/statusOverrides. first-write-wins: como as páginas são
-// varridas do período MAIS NOVO para o mais antigo, o estado mais recente de
-// cada disciplina prevalece (ex.: reprovou e depois foi aprovado → "done").
-export function parseBoletimPagina(html, faltas, statusOverrides) {
+// Acumula em faltas/statusOverrides/notas. first-write-wins: como as páginas
+// são varridas do período MAIS NOVO para o mais antigo, o estado mais recente
+// de cada disciplina prevalece (ex.: reprovou e depois foi aprovado → "done").
+export function parseBoletimPagina(html, faltas, statusOverrides, notas) {
   const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   const stripTagsRegex = /<[^>]+>/g;
 
@@ -186,6 +192,13 @@ export function parseBoletimPagina(html, faltas, statusOverrides) {
     } else if (SITUACOES_CURRENT.some(s => situacao.includes(s))) {
       statusOverrides[encId] = "current";
       faltas[encId] = faltasNum;
+      // Notas apenas das disciplinas em curso: [7]=P1, [9]=Média, [10]=AF, [12]=MFD
+      notas[encId] = {
+        p1:    limparNota(cells[7]),
+        media: limparNota(cells[9]),
+        af:    limparNota(cells[10]),
+        mfd:   limparNota(cells[12]),
+      };
     }
     // reprovado / desconhecido → não altera
   }
@@ -299,20 +312,21 @@ export default {
       // STEP D — parseBoletim de TODOS os períodos (mais novo → mais antigo)
       const faltas = {};
       const statusOverrides = {};
+      const notas = {};
 
       if (periodos.length === 0) {
         // Sem seletor de períodos: parseia ao menos a página atual.
-        parseBoletimPagina(primeiroHtml, faltas, statusOverrides);
+        parseBoletimPagina(primeiroHtml, faltas, statusOverrides, notas);
       } else {
         for (const p of periodos) {
           const url = `${baseUrl}&ano_periodo=${encodeURIComponent(p)}`;
           const resp = await fetch(url, { headers: headersBoletim });
           const html = await resp.text();
-          parseBoletimPagina(html, faltas, statusOverrides);
+          parseBoletimPagina(html, faltas, statusOverrides, notas);
         }
       }
 
-      return respJson(200, { faltas, statusOverrides });
+      return respJson(200, { faltas, statusOverrides, notas });
     } catch (err) {
       return respJson(500, { erro: "erro inesperado ao sincronizar com o SUAP" });
     }
