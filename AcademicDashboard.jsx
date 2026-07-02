@@ -286,8 +286,8 @@ function AbsenceTab({ subjects, faltas, setFaltas, notas, onOpenSuap }) {
           </p>
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-4 lg:items-start">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:col-span-2">
             {currentSubs.map(s => (
               <AbsenceCard key={s.id} subject={s}
                 faltas={faltas[s.id] || 0}
@@ -295,7 +295,7 @@ function AbsenceTab({ subjects, faltas, setFaltas, notas, onOpenSuap }) {
             ))}
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm lg:col-span-1">
             <div className="px-4 py-3 border-b border-gray-200">
               <p className="text-sm font-semibold text-gray-900">Resumo Geral de Frequência</p>
             </div>
@@ -303,7 +303,7 @@ function AbsenceTab({ subjects, faltas, setFaltas, notas, onOpenSuap }) {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    {["Disciplina","CH","Limite","Faltas","Restam","Dias Restantes","Status"].map(h => (
+                    {["Disciplina","Faltas","Restam","Status"].map(h => (
                       <th key={h} className="px-3 py-2 text-left text-gray-500 font-medium whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -312,7 +312,7 @@ function AbsenceTab({ subjects, faltas, setFaltas, notas, onOpenSuap }) {
                   {currentSubs.map(s => {
                     const meta = ATTENDANCE_META[s.id];
                     const f = faltas[s.id] || 0;
-                    const { limite, restam, diasRestantes, state } = calcAbsence(meta, f);
+                    const { restam, state } = calcAbsence(meta, f);
                     const statusLabel = { safe: "Seguro", warning: "Alerta", danger: "RF" }[state];
                     const statusClass = {
                       safe: "bg-gray-100 text-gray-600",
@@ -321,13 +321,10 @@ function AbsenceTab({ subjects, faltas, setFaltas, notas, onOpenSuap }) {
                     }[state];
                     return (
                       <tr key={s.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                        <td className="px-3 py-2.5 text-gray-900 font-medium">{meta.shortName}</td>
-                        <td className="px-3 py-2.5 text-gray-500">{meta.cargaHoraria}</td>
-                        <td className="px-3 py-2.5 text-gray-500">{limite}</td>
+                        <td className="px-3 py-2.5 text-gray-900 font-medium whitespace-nowrap">{meta.shortName}</td>
                         <td className="px-3 py-2.5 font-bold text-gray-900">{f}</td>
                         <td className={`px-3 py-2.5 font-medium ${restam <= 0 ? "text-red-600" : restam <= meta.aulasPorDia * 2 ? "text-amber-600" : "text-gray-700"}`}>{Math.max(0, restam)}</td>
-                        <td className={`px-3 py-2.5 font-bold ${diasRestantes <= 0 ? "text-red-600" : diasRestantes <= 2 ? "text-amber-600" : "text-gray-700"}`}>{diasRestantes}</td>
-                        <td className="px-3 py-2.5"><span className={`px-2 py-0.5 rounded-full ${statusClass}`}>{statusLabel}</span></td>
+                        <td className="px-3 py-2.5"><span className={`px-2 py-0.5 rounded-full whitespace-nowrap ${statusClass}`}>{statusLabel}</span></td>
                       </tr>
                     );
                   })}
@@ -335,7 +332,7 @@ function AbsenceTab({ subjects, faltas, setFaltas, notas, onOpenSuap }) {
               </table>
             </div>
           </div>
-        </>
+        </div>
       )}
         </>
       ) : (
