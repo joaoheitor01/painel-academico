@@ -32,6 +32,9 @@ export default defineConfig({
         // no precache, então o app funciona offline já na primeira instalação.
         globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
         navigateFallback: "index.html",
+        // Injeta os handlers de notificação (message + notificationclick) no SW
+        // gerado pelo Workbox, sem substituí-lo. Arquivo servido de public/.
+        importScripts: ["sw-notifications.js"],
       },
     }),
   ],
