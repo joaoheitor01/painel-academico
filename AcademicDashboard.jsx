@@ -3,11 +3,15 @@ import {
   CheckCircle2, BookOpen, Star, ChevronRight, ChevronLeft,
   GraduationCap, MoreHorizontal, LayoutGrid, Calendar, CalendarDays,
   Network, Minus, Plus, User, RefreshCw, Pencil, Moon, Info,
-  Search, Eye, EyeOff, X, LogOut, Lock, ArrowRight, GitBranch,
+  Search, Eye, EyeOff, X, LogOut, Lock, ArrowRight, GitBranch, Bell, BellOff,
 } from "lucide-react";
 import AuthScreen from "./AuthScreen";
 import { getSession, setSession, getDisplayName } from "./auth";
 import { loadUserData, saveUserData } from "./userData";
+import {
+  requestNotificationPermission, getNotificationPermission,
+  scheduleClassReminders, checkAttendanceAlerts,
+} from "./notifications";
 import {
   DEFAULT_SUBJECTS, CURRICULUM_PERIODS, ATTENDANCE_META, SCHEDULE, SUBJECT_COLORS,
   STATUS, STATUS_ORDER, fmtTime, DAY_START, DAY_END,
@@ -689,7 +693,39 @@ function SettingsRow({ icon: Icon, iconBg, label, onClick, trailing }) {
   );
 }
 
-function TabMais({ displayName, onOpenSuap, onOpenFluxo, onOpenEditar, onOpenSobre, onLogout }) {
+function NotificationRow({ permission, onEnable }) {
+  if (permission === "unsupported") return null;
+  if (permission === "granted") {
+    return (
+      <div className="w-full px-4 py-3.5 flex items-center gap-3">
+        <span className="w-8 h-8 rounded-xl bg-green-500 flex items-center justify-center shrink-0">
+          <Bell size={16} className="text-white" />
+        </span>
+        <span className="text-[15px] text-[#1C1C1E] flex-1">Notificações ativas</span>
+        <CheckCircle2 size={18} className="text-[#34C759]" />
+      </div>
+    );
+  }
+  if (permission === "denied") {
+    return (
+      <div className="w-full px-4 py-3.5 flex items-center gap-3">
+        <span className="w-8 h-8 rounded-xl bg-gray-400 flex items-center justify-center shrink-0">
+          <BellOff size={16} className="text-white" />
+        </span>
+        <span className="flex-1">
+          <span className="block text-[15px] text-[#1C1C1E]">Notificações bloqueadas</span>
+          <span className="block text-xs text-[#6D6D72]">Ative nas configurações do navegador</span>
+        </span>
+      </div>
+    );
+  }
+  // "default"
+  return (
+    <SettingsRow icon={Bell} iconBg="bg-violet-500" label="🔔 Ativar lembretes de aula" onClick={onEnable} />
+  );
+}
+
+function TabMais({ displayName, notifPermission, onEnableNotif, onOpenSuap, onOpenFluxo, onOpenEditar, onOpenSobre, onLogout }) {
   return (
     <div>
       <CourseHeader />
@@ -719,6 +755,7 @@ function TabMais({ displayName, onOpenSuap, onOpenFluxo, onOpenEditar, onOpenSob
       <div className="mx-4 mt-4">
         <p className="text-[11px] uppercase tracking-wider text-[#6D6D72] mb-2 px-1">App</p>
         <div className="bg-white rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-100">
+          <NotificationRow permission={notifPermission} onEnable={onEnableNotif} />
           <SettingsRow icon={Moon} iconBg="bg-gray-800" label="Tema escuro"
             trailing={<span className="w-10 h-6 rounded-full bg-gray-200 flex items-center px-0.5"><span className="w-5 h-5 rounded-full bg-white shadow" /></span>} />
           <SettingsRow icon={Info} iconBg="bg-gray-500" label="Sobre o app" onClick={onOpenSobre} />
@@ -829,6 +866,7 @@ function Dashboard({ userKey, displayName, onLogout }) {
   const [sobreModal, setSobreModal] = useState(false);
   const [suapLoading, setSuapLoading] = useState(false);
   const [suapError, setSuapError] = useState("");
+  const [notifPermission, setNotifPermission] = useState(() => getNotificationPermission());
 
   useEffect(() => {
     setHydratedFor(null);
@@ -843,6 +881,13 @@ function Dashboard({ userKey, displayName, onLogout }) {
     if (hydratedFor !== userKey) return;
     saveUserData(userKey, { faltas, statusOverrides, notas });
   }, [hydratedFor, userKey, faltas, statusOverrides, notas]);
+
+  // Reagenda lembretes de aula e reavalia alertas de falta ao carregar/mudar faltas.
+  useEffect(() => {
+    if (hydratedFor !== userKey) return;
+    scheduleClassReminders(SCHEDULE);
+    checkAttendanceAlerts(ATTENDANCE_META, faltas);
+  }, [hydratedFor, userKey, faltas]);
 
   const subjects = useMemo(() => DEFAULT_SUBJECTS.map(s => ({
     ...s,
@@ -889,6 +934,16 @@ function Dashboard({ userKey, displayName, onLogout }) {
       setStatusOverrides(prev => ({ ...prev, ...data.statusOverrides }));
       setNotas(prev => ({ ...prev, ...(data.notas || {}) }));
       setSuapModal(false);
+
+      // Após o 1º sync, oferece ativar notificações (se ainda não decidiu).
+      if (getNotificationPermission() === "default") {
+        const perm = await requestNotificationPermission();
+        setNotifPermission(perm);
+        if (perm === "granted") {
+          scheduleClassReminders(SCHEDULE);
+          checkAttendanceAlerts(ATTENDANCE_META, { ...faltas, ...data.faltas });
+        }
+      }
     } catch (err) {
       setSuapError(err.message);
     } finally {
@@ -908,6 +963,15 @@ function Dashboard({ userKey, displayName, onLogout }) {
     setMais(null);
   }
 
+  async function enableNotifications() {
+    const perm = await requestNotificationPermission();
+    setNotifPermission(perm);
+    if (perm === "granted") {
+      scheduleClassReminders(SCHEDULE);
+      checkAttendanceAlerts(ATTENDANCE_META, faltas);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#F2F1F6] flex flex-col max-w-[430px] mx-auto relative">
       <main className="flex-1 overflow-y-auto pb-20">
@@ -916,6 +980,8 @@ function Dashboard({ userKey, displayName, onLogout }) {
         {tab === "notas"   && <TabNotas subjects={subjects} faltas={faltas} setFaltas={setFaltas} notas={notas} onOpenSuap={() => setSuapModal(true)} />}
         {tab === "mais" && mais === null && (
           <TabMais displayName={displayName}
+            notifPermission={notifPermission}
+            onEnableNotif={enableNotifications}
             onOpenSuap={() => setSuapModal(true)}
             onOpenFluxo={() => setMais("fluxo")}
             onOpenEditar={() => setMais("editar")}
