@@ -185,10 +185,16 @@ function TabHorario() {
   const laid = useMemo(() => layoutDay(day.blocks), [dayIdx]);
   const intervals = day.blocks.flatMap(b => (b.intervals || []).map(iv => ({ ...iv, key: `${b.id}-${iv.start}` })));
 
+  // Janela do dia: só o intervalo com aula (evita horas vazias no fim do dia).
+  const hasBlocks = day.blocks.length > 0;
+  const winStart = hasBlocks ? Math.floor(Math.min(...day.blocks.map(b => b.start)) / 60) * 60 : DAY_START;
+  const winEnd   = hasBlocks ? Math.ceil(Math.max(...day.blocks.map(b => b.end)) / 60) * 60 : DAY_END;
+  const OFFSET = 14; // respiro no topo/base pra não cortar os rótulos de hora
   const hours = [];
-  for (let m = DAY_START; m <= DAY_END; m += 60) hours.push(m);
+  for (let m = winStart; m <= winEnd; m += 60) hours.push(m);
   const totalAulas = SCHEDULE.reduce((a, d) => a + d.blocks.reduce((x, b) => x + b.aulas, 0), 0);
-  const px = (min) => min - DAY_START; // 1px por minuto = 60px por hora
+  const px = (min) => (min - winStart) + OFFSET; // 1px por minuto = 60px por hora
+  const gridHeight = (winEnd - winStart) + OFFSET * 2;
 
   return (
     <div>
@@ -218,7 +224,7 @@ function TabHorario() {
         </div>
       ) : (
         <div className="mx-4 mt-3 bg-white rounded-2xl overflow-hidden shadow-sm">
-          <div className="relative flex" style={{ height: `${px(DAY_END) + 20}px` }}>
+          <div className="relative flex" style={{ height: `${gridHeight}px` }}>
             {/* time labels */}
             <div className="w-14 shrink-0 relative">
               {hours.map(m => (
