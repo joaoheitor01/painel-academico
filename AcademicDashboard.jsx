@@ -924,14 +924,33 @@ function Dashboard({ userKey, displayName, onLogout }) {
     setSuapLoading(true);
     setSuapError("");
     try {
-      // Cifra a senha no dispositivo (RSA-OAEP): ela nunca sai em texto claro.
-      const senha_enc = await encryptSenha(senha);
-      const resp = await fetch(WORKER_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matricula, senha_enc }),
-      });
-      const data = await resp.json();
+      const post = async (payload) => {
+        const r = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const d = await r.json().catch(() => ({}));
+        return { r, d };
+      };
+
+      // Preferencial: senha cifrada no dispositivo (RSA-OAEP) — nunca sai em claro.
+      let resp, data;
+      try {
+        const senha_enc = await encryptSenha(senha);
+        ({ r: resp, d: data } = await post({ matricula, senha_enc }));
+      } catch {
+        // Web Crypto indisponível (contexto inseguro): usa o fluxo em claro.
+        ({ r: resp, d: data } = await post({ matricula, senha }));
+      }
+
+      // Transição de rollout: se o Worker ainda não entende senha_enc (não
+      // redeployado com o secret), ele responde 400/500 — refaz uma vez em
+      // claro. Vira 100% cifrado sozinho assim que o Worker for atualizado.
+      if (!resp.ok && (resp.status === 400 || resp.status === 500)) {
+        ({ r: resp, d: data } = await post({ matricula, senha }));
+      }
+
       if (!resp.ok) throw new Error(data.erro || "Erro desconhecido");
       setFaltas(prev => ({ ...prev, ...data.faltas }));
       setStatusOverrides(prev => ({ ...prev, ...data.statusOverrides }));
