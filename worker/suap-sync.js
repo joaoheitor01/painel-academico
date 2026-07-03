@@ -10,7 +10,35 @@ function corsHeaders() {
     "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
+    // Hardening: nunca inferir tipo, nunca vazar referrer, nunca cachear
+    // (respostas derivam de credenciais). Vary p/ caches intermediários.
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "Cache-Control": "no-store",
+    "Vary": "Origin",
   };
+}
+
+// ─── Descriptografia da senha (RSA-OAEP) ───────────────────────────────────
+// A senha chega cifrada com a chave pública (ver cryptoSuap.js no cliente) e é
+// aberta aqui, em memória, com a chave privada guardada no secret SUAP_PRIVATE_KEY.
+function b64ToBuf(b64) {
+  const bin = atob(b64);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
+}
+
+async function decryptSenha(privateKeyB64, ciphertextB64) {
+  const key = await crypto.subtle.importKey(
+    "pkcs8",
+    b64ToBuf(privateKeyB64),
+    { name: "RSA-OAEP", hash: "SHA-256" },
+    false,
+    ["decrypt"]
+  );
+  const pt = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, key, b64ToBuf(ciphertextB64));
+  return new TextDecoder().decode(pt);
 }
 
 function respJson(status, data, extraHeaders = {}) {
@@ -252,7 +280,7 @@ function findCookieValue(jar, suffix) {
 }
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders() });
     }
@@ -268,8 +296,24 @@ export default {
       return respJson(400, { erro: "corpo da requisição inválido" });
     }
 
-    const { matricula, senha } = body || {};
-    if (!matricula || !senha) {
+    const { matricula, senha, senha_enc } = body || {};
+
+    // Preferencial: senha cifrada (RSA-OAEP), aberta só aqui em memória.
+    // Fallback em texto claro mantém compatibilidade com clientes antigos
+    // ainda em cache do Service Worker durante o rollout.
+    let senhaPlain = senha;
+    if (senha_enc) {
+      if (!env || !env.SUAP_PRIVATE_KEY) {
+        return respJson(500, { erro: "chave de descriptografia não configurada no servidor" });
+      }
+      try {
+        senhaPlain = await decryptSenha(env.SUAP_PRIVATE_KEY, senha_enc);
+      } catch {
+        return respJson(400, { erro: "falha ao descriptografar as credenciais" });
+      }
+    }
+
+    if (!matricula || !senhaPlain) {
       return respJson(400, { erro: "matricula e senha são obrigatórios" });
     }
 
@@ -294,7 +338,7 @@ export default {
       // STEP B — POST login
       const loginBody = new URLSearchParams({
         username: matricula,
-        password: senha,
+        password: senhaPlain,
         csrfmiddlewaretoken: csrfMiddleware,
         next: "/",
       });
