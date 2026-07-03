@@ -79,7 +79,7 @@ function TabGeral({ subjects, stats, doneSubs }) {
       </div>
 
       {/* 4-CARD GRID */}
-      <div className="grid grid-cols-2 gap-3 mx-4 mt-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mx-4 mt-4">
         {cards.map(({ icon: Icon, color, value, label }) => (
           <div key={label} className="bg-white rounded-2xl p-4 flex flex-col items-center gap-1 shadow-sm">
             <Icon size={22} className={color} />
@@ -95,9 +95,9 @@ function TabGeral({ subjects, stats, doneSubs }) {
           <h2 className="text-[18px] font-bold text-[#1C1C1E]">Cursando</h2>
           <span className="text-[13px] text-[#6D6D72]">{current.length}</span>
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
           {current.length === 0 && (
-            <div className="bg-white rounded-2xl px-4 py-6 text-center text-sm text-[#6D6D72] shadow-sm">
+            <div className="bg-white rounded-2xl px-4 py-6 text-center text-sm text-[#6D6D72] shadow-sm lg:col-span-2">
               Nenhuma disciplina em curso. Sincronize com o SUAP.
             </div>
           )}
@@ -420,7 +420,7 @@ function TabNotas({ subjects, faltas, setFaltas, notas, onOpenSuap }) {
             </div>
           ) : (
             <>
-              <div className="mx-4 mt-3 flex flex-col gap-3">
+              <div className="mx-4 mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {currentSubs.map(s => (
                   <AbsenceCardMobile key={s.id} subject={s}
                     faltas={faltas[s.id] || 0}
@@ -478,7 +478,7 @@ function TabNotas({ subjects, faltas, setFaltas, notas, onOpenSuap }) {
             Nenhuma disciplina em curso para exibir notas.
           </div>
         ) : (
-          <div className="mx-4 mt-3 mb-2 flex flex-col gap-3">
+          <div className="mx-4 mt-3 mb-2 grid grid-cols-1 lg:grid-cols-2 gap-3">
             {notaSubs.map(s => (
               <NotaCardMobile key={s.id} subject={s} nota={notas[s.id]} faltas={faltas[s.id] || 0} />
             ))}
@@ -777,10 +777,10 @@ function SuapSheet({ onSync, onClose, loading, error }) {
   const [showPw, setShowPw] = useState(false);
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/50 flex items-end justify-center" onClick={onClose}>
-      <div className="w-full max-w-[430px] bg-white rounded-t-3xl px-5 pt-2 pb-8" onClick={e => e.stopPropagation()}>
-        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
-        <div className="w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center mx-auto mb-3">
+    <div className="fixed inset-0 z-[60] bg-black/50 flex items-end lg:items-center justify-center" onClick={onClose}>
+      <div className="w-full max-w-[430px] bg-white rounded-t-3xl lg:rounded-3xl px-5 pt-2 pb-8 lg:pb-6 lg:mb-0" onClick={e => e.stopPropagation()}>
+        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4 lg:hidden" />
+        <div className="w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center mx-auto mb-3 lg:mt-4">
           <RefreshCw size={22} className="text-violet-600" />
         </div>
         <h2 className="text-[20px] font-bold text-[#1C1C1E] text-center">Sincronizar com SUAP</h2>
@@ -832,10 +832,10 @@ function SuapSheet({ onSync, onClose, loading, error }) {
 // ─── MODAL SOBRE ───────────────────────────────────────────────────────────────
 function SobreSheet({ onClose }) {
   return (
-    <div className="fixed inset-0 z-[60] bg-black/50 flex items-end justify-center" onClick={onClose}>
-      <div className="w-full max-w-[430px] bg-white rounded-t-3xl px-5 pt-2 pb-8" onClick={e => e.stopPropagation()}>
-        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
-        <div className="w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center mx-auto mb-3">
+    <div className="fixed inset-0 z-[60] bg-black/50 flex items-end lg:items-center justify-center" onClick={onClose}>
+      <div className="w-full max-w-[430px] bg-white rounded-t-3xl lg:rounded-3xl px-5 pt-2 pb-8 lg:pb-6 lg:mb-0" onClick={e => e.stopPropagation()}>
+        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4 lg:hidden" />
+        <div className="w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center mx-auto mb-3 lg:mt-4">
           <GraduationCap size={24} className="text-violet-600" />
         </div>
         <h2 className="text-[20px] font-bold text-[#1C1C1E] text-center">Dashboard Acadêmico</h2>
@@ -973,43 +973,83 @@ function Dashboard({ userKey, displayName, onLogout }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F2F1F6] flex flex-col max-w-[430px] mx-auto relative">
-      <main className="flex-1 overflow-y-auto pb-20">
-        {tab === "geral"   && <TabGeral subjects={subjects} stats={stats} doneSubs={doneSubs} />}
-        {tab === "horario" && <TabHorario />}
-        {tab === "notas"   && <TabNotas subjects={subjects} faltas={faltas} setFaltas={setFaltas} notas={notas} onOpenSuap={() => setSuapModal(true)} />}
-        {tab === "mais" && mais === null && (
-          <TabMais displayName={displayName}
-            notifPermission={notifPermission}
-            onEnableNotif={enableNotifications}
-            onOpenSuap={() => setSuapModal(true)}
-            onOpenFluxo={() => setMais("fluxo")}
-            onOpenEditar={() => setMais("editar")}
-            onOpenSobre={() => setSobreModal(true)}
-            onLogout={onLogout} />
-        )}
-        {tab === "mais" && mais === "fluxo"  && <FluxoScreen subjects={subjects} onBack={() => setMais(null)} />}
-        {tab === "mais" && mais === "editar" && <EditarScreen subjects={subjects} onCycleStatus={cycleStatus} onBack={() => setMais(null)} />}
-      </main>
-
-      {/* BOTTOM NAV */}
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-gray-200 z-50">
-        <div className="flex">
+    <div className="min-h-screen bg-[#F2F1F6] lg:flex">
+      {/* SIDEBAR — apenas desktop (lg+) */}
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white border-r border-gray-200 z-40">
+        <div className="px-5 pt-6 pb-5 flex items-center gap-2.5 border-b border-gray-100">
+          <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
+            <GraduationCap size={20} className="text-violet-600" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-[#1C1C1E] leading-tight truncate">Dashboard Acadêmico</p>
+            <p className="text-[11px] text-[#6D6D72] truncate">Eng. Computação · IFMT</p>
+          </div>
+        </div>
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
           {NAV.map(item => {
             const active = tab === item.id;
             return (
               <button key={item.id} onClick={() => goTab(item.id)}
-                className="flex-1 flex flex-col items-center py-2 pt-3 gap-0.5 relative">
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
+                  active ? "bg-violet-50 text-violet-700" : "text-gray-500 hover:bg-gray-50"}`}>
                 <span className="relative">
-                  <item.icon size={22} className={active ? "text-violet-600" : "text-gray-400"} />
+                  <item.icon size={20} className={active ? "text-violet-600" : "text-gray-400"} />
                   {item.badge && <span className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-[#FF3B30]" />}
                 </span>
-                <span className={`text-[10px] font-medium ${active ? "text-violet-600" : "text-gray-400"}`}>{item.label}</span>
+                <span className="text-sm font-medium">{item.label}</span>
               </button>
             );
           })}
+        </nav>
+        <div className="px-3 pb-4 pt-3 border-t border-gray-100">
+          <button onClick={onLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#FF3B30] hover:bg-red-50 text-sm font-medium transition-colors">
+            <LogOut size={18} /> Sair
+          </button>
         </div>
-      </nav>
+      </aside>
+
+      {/* COLUNA DO APP — celular: 430px centralizado; desktop: à direita da sidebar */}
+      <div className="min-h-screen flex flex-col max-w-[430px] mx-auto lg:max-w-none lg:mx-0 lg:ml-64 lg:flex-1 relative">
+        <main className="flex-1 overflow-y-auto pb-20 lg:pb-10">
+          <div className="lg:max-w-5xl lg:mx-auto lg:w-full">
+            {tab === "geral"   && <TabGeral subjects={subjects} stats={stats} doneSubs={doneSubs} />}
+            {tab === "horario" && <TabHorario />}
+            {tab === "notas"   && <TabNotas subjects={subjects} faltas={faltas} setFaltas={setFaltas} notas={notas} onOpenSuap={() => setSuapModal(true)} />}
+            {tab === "mais" && mais === null && (
+              <TabMais displayName={displayName}
+                notifPermission={notifPermission}
+                onEnableNotif={enableNotifications}
+                onOpenSuap={() => setSuapModal(true)}
+                onOpenFluxo={() => setMais("fluxo")}
+                onOpenEditar={() => setMais("editar")}
+                onOpenSobre={() => setSobreModal(true)}
+                onLogout={onLogout} />
+            )}
+            {tab === "mais" && mais === "fluxo"  && <FluxoScreen subjects={subjects} onBack={() => setMais(null)} />}
+            {tab === "mais" && mais === "editar" && <EditarScreen subjects={subjects} onCycleStatus={cycleStatus} onBack={() => setMais(null)} />}
+          </div>
+        </main>
+
+        {/* BOTTOM NAV — apenas celular (escondido no desktop) */}
+        <nav className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-gray-200 z-50">
+          <div className="flex">
+            {NAV.map(item => {
+              const active = tab === item.id;
+              return (
+                <button key={item.id} onClick={() => goTab(item.id)}
+                  className="flex-1 flex flex-col items-center py-2 pt-3 gap-0.5 relative">
+                  <span className="relative">
+                    <item.icon size={22} className={active ? "text-violet-600" : "text-gray-400"} />
+                    {item.badge && <span className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-[#FF3B30]" />}
+                  </span>
+                  <span className={`text-[10px] font-medium ${active ? "text-violet-600" : "text-gray-400"}`}>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      </div>
 
       {suapModal && (
         <SuapSheet onSync={sincronizarSUAP}
