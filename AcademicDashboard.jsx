@@ -1,251 +1,390 @@
 import { useState, useMemo, useEffect } from "react";
 import {
-  CheckCircle2, Circle, BookOpen, Zap, ChevronRight,
-  BarChart3, GitBranch, GraduationCap, Clock, Star,
-  ArrowRight, Layers, TrendingUp, Network, Calendar,
-  AlertTriangle, XCircle, Shield, Minus, Plus, CalendarDays,
-  User, LogOut, Pencil, RefreshCw, School
+  CheckCircle2, BookOpen, Star, ChevronRight, ChevronLeft,
+  GraduationCap, MoreHorizontal, LayoutGrid, Calendar, CalendarDays,
+  Network, Minus, Plus, User, RefreshCw, Pencil, Moon, Info,
+  Search, Eye, EyeOff, X, LogOut, Lock, ArrowRight, GitBranch,
 } from "lucide-react";
 import AuthScreen from "./AuthScreen";
 import { getSession, setSession, getDisplayName } from "./auth";
 import { loadUserData, saveUserData } from "./userData";
 import {
   DEFAULT_SUBJECTS, CURRICULUM_PERIODS, ATTENDANCE_META, SCHEDULE, SUBJECT_COLORS,
-  STATUS, STATUS_ORDER, toMin, fmtTime, DAY_START, DAY_END, DAY_SPAN,
+  STATUS, STATUS_ORDER, fmtTime, DAY_START, DAY_END,
   getCascadeCount, calcAbsence,
 } from "./curriculumData";
 
-function ProgressBar({ value, colorClass = "bg-gray-900" }) {
-  return (
-    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-      <div className={`h-full rounded-full transition-all duration-700 ${colorClass}`} style={{ width: `${Math.min(100, value)}%` }} />
-    </div>
-  );
-}
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho",
+  "Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
-function AbsenceCard({ subject, faltas, onSetFaltas }) {
-  const meta = ATTENDANCE_META[subject.id];
+// RF = reprovado por falta (danger). Usa a lógica intacta de calcAbsence.
+function absState(id, faltas) {
+  const meta = ATTENDANCE_META[id];
   if (!meta) return null;
-  const { limite, restam, diasRestantes, pct, state } = calcAbsence(meta, faltas);
+  return calcAbsence(meta, faltas);
+}
 
-  const stateStyle = {
-    safe:    { bar: "bg-gray-400",  icon: Shield,        textColor: "text-gray-600",  box: "bg-gray-50 border-gray-200",   top: "border-gray-300" },
-    warning: { bar: "bg-amber-400", icon: AlertTriangle, textColor: "text-amber-700", box: "bg-amber-50 border-amber-200", top: "border-gray-300" },
-    danger:  { bar: "bg-red-500",   icon: XCircle,       textColor: "text-red-700",   box: "bg-red-50 border-red-200",     top: "border-red-500" },
-  }[state];
-
-  const IconAlert = stateStyle.icon;
-
+// Header padrão das tabs: capelo violet + curso.
+function CourseHeader({ title, subtitle = "Engenharia de Computação · IFMT", icon: Icon = GraduationCap }) {
   return (
-    <div className={`rounded-xl border border-gray-200 border-t-2 ${stateStyle.top} bg-white overflow-hidden shadow-sm`}>
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div>
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span className={`w-2 h-2 rounded-full ${state === "danger" ? "bg-red-500" : "bg-gray-400"}`} />
-              <span className="text-xs text-gray-500 font-medium">{subject.id}</span>
-            </div>
-            <h4 className="text-sm font-bold text-gray-900 leading-snug">{subject.name}</h4>
-          </div>
-          <span className="text-xs text-gray-500 shrink-0">{meta.cargaHoraria}h</span>
+    <div className="bg-white px-4 pt-5 pb-3 border-b border-gray-100">
+      {title && <h1 className="text-[20px] font-bold text-violet-600 leading-tight">{title}</h1>}
+      <div className="flex items-center gap-2 mt-0.5">
+        <div className="w-6 h-6 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
+          <Icon size={14} className="text-violet-600" />
         </div>
-
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-xs text-gray-500 mr-auto">Faltas atuais</span>
-          <button onClick={() => onSetFaltas(Math.max(0, faltas - 1))}
-            className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 transition-colors">
-            <Minus size={12} />
-          </button>
-          <span className="text-lg font-bold text-gray-900 w-8 text-center">{faltas}</span>
-          <button onClick={() => onSetFaltas(Math.min(meta.cargaHoraria, faltas + 1))}
-            className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 transition-colors">
-            <Plus size={12} />
-          </button>
-          <span className="text-xs text-gray-500">/ {limite} max</span>
-        </div>
-
-        <ProgressBar value={pct} colorClass={stateStyle.bar} />
-        <div className="flex justify-between text-xs text-gray-500 mt-1 mb-3">
-          <span>{faltas} usadas</span>
-          <span>{pct}% do limite</span>
-        </div>
-
-        <div className={`rounded-lg border px-3 py-2 flex items-center gap-2 ${stateStyle.box}`}>
-          <IconAlert size={14} className={stateStyle.textColor} />
-          <p className={`text-xs font-medium ${stateStyle.textColor}`}>
-            {state === "danger"  && "Limite estourado. Reprovado por falta (RF)."}
-            {state === "warning" && `Atenção! Só pode faltar mais ${diasRestantes} dia${diasRestantes !== 1 ? "s" : ""} de ${meta.shortName}.`}
-            {state === "safe"    && `Tranquilo. Ainda pode faltar ${diasRestantes} dia${diasRestantes !== 1 ? "s" : ""}.`}
-          </p>
-        </div>
-
-        <div className="mt-2 flex gap-3 text-xs text-gray-500">
-          <span>{meta.aulasPorDia} aulas/dia</span>
-          <span>·</span>
-          <span>{Math.max(0, restam)} faltas restantes</span>
-        </div>
+        <span className="text-[13px] font-medium text-[#6D6D72]">{subtitle}</span>
       </div>
     </div>
   );
 }
 
-function ScheduleTab() {
-  const timeMarkers = [];
-  for (let m = DAY_START; m <= DAY_END; m += 60) timeMarkers.push(m);
-  const pct = (min) => ((min - DAY_START) / DAY_SPAN) * 100;
+// ─── FASE 2 · TAB GERAL ─────────────────────────────────────────────────────────
+function TabGeral({ subjects, stats, doneSubs }) {
+  const current = subjects.filter(s => s.status === "current");
+  const nextCount   = subjects.filter(s => s.status === "next").length;
+  const futureCount = subjects.filter(s => s.status === "future").length;
+
+  const cards = [
+    { icon: CheckCircle2, color: "text-[#34C759]", value: stats.done,    label: "Concluídas" },
+    { icon: BookOpen,     color: "text-violet-600", value: stats.current, label: "Cursando" },
+    { icon: Star,         color: "text-violet-600", value: nextCount,     label: "Próximas" },
+    { icon: CalendarDays, color: "text-violet-600", value: futureCount,   label: "Futuras" },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap gap-2">
-        {Object.entries(SUBJECT_COLORS).map(([id, c]) => {
-          const meta = ATTENDANCE_META[id];
-          return meta ? (
-            <div key={id} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${c.light || "bg-gray-50"} border ${c.border || "border-gray-200"}`}>
-              <span className={`w-2 h-2 rounded-full ${c.dot || "bg-gray-400"}`} />
-              <span className="text-xs text-gray-700 font-medium">{meta.shortName}</span>
-            </div>
-          ) : null;
-        })}
+    <div>
+      {/* HERO */}
+      <div className="bg-white rounded-b-3xl px-5 pt-6 pb-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center">
+            <GraduationCap size={20} className="text-violet-600" />
+          </div>
+          <span className="text-[13px] font-medium text-[#6D6D72]">Engenharia de Computação · IFMT</span>
+        </div>
+        <p className="text-[40px] leading-none font-bold text-violet-600">{stats.pct}% <span className="text-[15px] align-middle font-semibold text-violet-400">CONCLUÍDO</span></p>
+        <p className="text-[13px] text-[#6D6D72] mt-1 mb-3">Progresso Total do Curso</p>
+        <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-full bg-violet-600 rounded-full transition-all duration-700" style={{ width: `${stats.pct}%` }} />
+        </div>
+        <div className="flex justify-between text-xs text-[#6D6D72] mt-2">
+          <span>{stats.done} de {stats.total} disciplinas</span>
+          <span>{stats.pct}%</span>
+        </div>
       </div>
 
-      <div className="space-y-4">
-        {SCHEDULE.map(({ day, dayShort, blocks }) => (
-          <div key={day} className="flex gap-3 items-start">
-            <div className="w-10 shrink-0 pt-5 text-center">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{dayShort}</span>
-            </div>
-            <div className="flex-1 bg-white border border-gray-200 rounded-xl p-3 shadow-sm">
-              <div className="relative h-4 mb-2">
-                {timeMarkers.map(m => (
-                  <span key={m} className="absolute text-[10px] text-gray-400 -translate-x-1/2"
-                    style={{ left: `${pct(m)}%` }}>
-                    {fmtTime(m)}
-                  </span>
-                ))}
-              </div>
-
-              <div className="relative h-14 bg-gray-100 rounded-xl overflow-hidden">
-                {timeMarkers.map(m => (
-                  <div key={m} className="absolute top-0 bottom-0 w-px bg-gray-200" style={{ left: `${pct(m)}%` }} />
-                ))}
-                {blocks.map((block, i) => {
-                  const c = SUBJECT_COLORS[block.id] || {};
-                  const left  = pct(block.start);
-                  const width = pct(block.end) - pct(block.start);
-                  return (
-                    <div key={`${block.id}-${i}`}
-                      className={`absolute top-1 bottom-1 rounded-lg ${c.bg || "bg-gray-100"} border ${c.border || "border-gray-200"} flex flex-col justify-center px-2 overflow-hidden cursor-default`}
-                      style={{ left: `${left}%`, width: `${width}%` }}
-                      title={`${block.name} · ${fmtTime(block.start)} – ${fmtTime(block.end)} · ${block.aulas} aula(s)`}>
-                      <span className={`text-[11px] font-bold leading-tight truncate ${c.text || "text-gray-700"}`}>{block.name}</span>
-                      <span className={`text-[10px] opacity-70 truncate ${c.text || "text-gray-700"}`}>{fmtTime(block.start)}–{fmtTime(block.end)}</span>
-                      {block.intervals?.map((iv, j) => (
-                        <div key={j} className="absolute top-0 bottom-0 bg-white/40 border-x border-gray-200"
-                          style={{
-                            left:  `${((iv.start - block.start) / (block.end - block.start)) * 100}%`,
-                            width: `${((iv.end - iv.start) / (block.end - block.start)) * 100}%`,
-                          }} />
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {blocks.map((block, i) => {
-                  const c = SUBJECT_COLORS[block.id] || {};
-                  return (
-                    <span key={`${block.id}-${i}-lbl`}
-                      className={`text-[10px] px-2 py-0.5 rounded-full ${c.light || "bg-gray-50"} border ${c.border || "border-gray-200"} ${c.text || "text-gray-700"}`}>
-                      {fmtTime(block.start)}–{fmtTime(block.end)} · {block.name} ({block.aulas}×)
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
+      {/* 4-CARD GRID */}
+      <div className="grid grid-cols-2 gap-3 mx-4 mt-4">
+        {cards.map(({ icon: Icon, color, value, label }) => (
+          <div key={label} className="bg-white rounded-2xl p-4 flex flex-col items-center gap-1 shadow-sm">
+            <Icon size={22} className={color} />
+            <span className="text-[28px] leading-none font-bold text-[#1C1C1E]">{value}</span>
+            <span className="text-xs text-[#6D6D72]">{label}</span>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-gray-200">
+      {/* CURSANDO */}
+      <div className="mx-4 mt-5">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-[18px] font-bold text-[#1C1C1E]">Cursando</h2>
+          <span className="text-[13px] text-[#6D6D72]">{current.length}</span>
+        </div>
+        <div className="flex flex-col gap-2">
+          {current.length === 0 && (
+            <div className="bg-white rounded-2xl px-4 py-6 text-center text-sm text-[#6D6D72] shadow-sm">
+              Nenhuma disciplina em curso. Sincronize com o SUAP.
+            </div>
+          )}
+          {current.map(s => {
+            const st = absState(s.id, s.faltas);
+            const rf = st?.state === "danger";
+            return (
+              <div key={s.id} className="bg-white rounded-2xl px-4 py-3 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${rf ? "bg-[#FF3B30]" : "bg-violet-500"}`} />
+                  <span className="text-[15px] font-bold text-[#1C1C1E] leading-snug flex-1">{s.name}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 shrink-0">{s.id}</span>
+                </div>
+                <p className="text-xs text-[#6D6D72] mt-1 pl-4">Cursando · 2026/1</p>
+                {rf && (
+                  <div className="mt-2 rounded-lg bg-red-50 text-[#FF3B30] text-xs px-3 py-1.5">
+                    ⚠ Limite de faltas atingido
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* CONCLUÍDAS (collapse) */}
+      <div className="mx-4 mt-4 mb-2">
+        <details className="bg-white rounded-2xl overflow-hidden shadow-sm group">
+          <summary className="px-4 py-3.5 flex items-center gap-2 cursor-pointer select-none list-none">
+            <CheckCircle2 size={16} className="text-[#34C759]" />
+            <span className="text-[15px] font-semibold text-[#1C1C1E] flex-1">Disciplinas Concluídas</span>
+            <span className="text-xs text-[#6D6D72]">{doneSubs.length}</span>
+            <ChevronRight size={16} className="text-gray-300 transition-transform group-open:rotate-90" />
+          </summary>
+          <div className="px-4 pb-4 pt-1 border-t border-gray-100 flex flex-col gap-1.5">
+            {doneSubs.map(s => (
+              <div key={s.id} className="flex items-center gap-2 py-1">
+                <span className="text-sm text-[#1C1C1E] flex-1 truncate">{s.name}</span>
+                <span className="text-[11px] text-gray-400 shrink-0">{s.id}</span>
+                <CheckCircle2 size={14} className="text-[#34C759] shrink-0" />
+              </div>
+            ))}
+          </div>
+        </details>
+      </div>
+    </div>
+  );
+}
+
+// ─── FASE 3 · TAB HORÁRIO ────────────────────────────────────────────────────────
+// Layout de colunas para blocos que se sobrepõem no tempo (side-by-side).
+function layoutDay(blocks) {
+  const items = blocks.map((b, i) => ({ ...b, key: `${b.id}-${i}` }))
+    .sort((a, b) => a.start - b.start || a.end - b.end);
+  const out = [];
+  let cluster = [], clusterEnd = -1;
+  const flush = () => {
+    if (!cluster.length) return;
+    const colEnds = [];
+    cluster.forEach(b => {
+      let c = colEnds.findIndex(end => end <= b.start);
+      if (c === -1) { c = colEnds.length; colEnds.push(b.end); }
+      else colEnds[c] = b.end;
+      b._col = c;
+    });
+    cluster.forEach(b => { b._cols = colEnds.length; out.push(b); });
+    cluster = []; clusterEnd = -1;
+  };
+  items.forEach(b => {
+    if (cluster.length && b.start >= clusterEnd) flush();
+    cluster.push(b);
+    clusterEnd = Math.max(clusterEnd, b.end);
+  });
+  flush();
+  return out;
+}
+
+function TabHorario() {
+  const now = new Date();
+  const dow = now.getDay(); // 0 dom .. 6 sáb
+  const initialDay = dow >= 1 && dow <= 5 ? dow - 1 : 0;
+  const [dayIdx, setDayIdx] = useState(initialDay);
+
+  const monday = new Date(now); monday.setDate(now.getDate() - ((dow + 6) % 7));
+  const friday = new Date(monday); friday.setDate(monday.getDate() + 4);
+  const weekLabel = `Semana de ${monday.getDate()} a ${friday.getDate()} de ${MESES[friday.getMonth()]}`;
+
+  const day = SCHEDULE[dayIdx];
+  const laid = useMemo(() => layoutDay(day.blocks), [dayIdx]);
+  const intervals = day.blocks.flatMap(b => (b.intervals || []).map(iv => ({ ...iv, key: `${b.id}-${iv.start}` })));
+
+  const hours = [];
+  for (let m = DAY_START; m <= DAY_END; m += 60) hours.push(m);
+  const totalAulas = SCHEDULE.reduce((a, d) => a + d.blocks.reduce((x, b) => x + b.aulas, 0), 0);
+  const px = (min) => min - DAY_START; // 1px por minuto = 60px por hora
+
+  return (
+    <div>
+      <div className="bg-white px-4 pt-5 pb-3">
+        <h1 className="text-[20px] font-bold text-violet-600">📅 Horário</h1>
+        <p className="text-[13px] text-[#6D6D72] mt-0.5">Engenharia de Computação - IFMT</p>
+        <p className="text-[13px] text-[#6D6D72] mt-0.5">{weekLabel}</p>
+      </div>
+
+      {/* DAY SELECTOR */}
+      <div className="px-4 pb-3 bg-white border-b border-gray-100">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          {SCHEDULE.map((d, i) => (
+            <button key={d.dayShort} onClick={() => setDayIdx(i)}
+              className={`shrink-0 px-4 py-2 rounded-xl font-bold text-sm transition-colors ${
+                i === dayIdx ? "bg-violet-600 text-white" : "bg-gray-100 text-gray-500"}`}>
+              {d.dayShort}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* CALENDAR */}
+      {day.blocks.length === 0 ? (
+        <div className="mx-4 mt-3 bg-white rounded-2xl py-16 text-center text-[#6D6D72] shadow-sm">
+          Sem aulas neste dia 📚
+        </div>
+      ) : (
+        <div className="mx-4 mt-3 bg-white rounded-2xl overflow-hidden shadow-sm">
+          <div className="relative flex" style={{ height: `${px(DAY_END) + 20}px` }}>
+            {/* time labels */}
+            <div className="w-14 shrink-0 relative">
+              {hours.map(m => (
+                <span key={m} className="absolute right-2 -translate-y-1/2 text-[11px] text-gray-400"
+                  style={{ top: `${px(m)}px` }}>{fmtTime(m)}</span>
+              ))}
+            </div>
+            {/* content */}
+            <div className="flex-1 relative border-l border-gray-100">
+              {hours.map(m => (
+                <div key={m} className="absolute left-0 right-0 border-t border-gray-100" style={{ top: `${px(m)}px` }} />
+              ))}
+              {/* intervalos */}
+              {intervals.map(iv => (
+                <div key={iv.key} className="absolute left-0 right-2 flex items-center"
+                  style={{ top: `${px(iv.start)}px`, height: `${px(iv.end) - px(iv.start)}px` }}>
+                  <div className="w-full border-t border-dashed border-gray-300 relative">
+                    <span className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-[9px] font-semibold tracking-wider text-gray-400">INTERVALO</span>
+                  </div>
+                </div>
+              ))}
+              {/* blocos */}
+              {laid.map(b => {
+                const c = SUBJECT_COLORS[b.id] || {};
+                const width = 100 / b._cols;
+                return (
+                  <div key={b.key}
+                    className={`absolute rounded-xl px-3 py-2 overflow-hidden ${c.bg || "bg-gray-100"} ${c.text || "text-gray-700"}`}
+                    style={{
+                      top: `${px(b.start) + 2}px`,
+                      height: `${px(b.end) - px(b.start) - 4}px`,
+                      left: `calc(${b._col * width}% + 4px)`,
+                      width: `calc(${width}% - 8px)`,
+                    }}>
+                    <p className="text-[14px] font-bold leading-tight truncate">{b.name}</p>
+                    <p className="text-[11px] opacity-70">{fmtTime(b.start)} – {fmtTime(b.end)}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FOOTER STATS */}
+      <div className="mx-4 mt-3 mb-2 flex flex-wrap gap-2">
         {[
-          { label: "Dias com aula",   value: "5",   sub: "Seg → Sex",        icon: CalendarDays },
-          { label: "Total aulas/sem", value: SCHEDULE.reduce((a,d)=>a+d.blocks.reduce((x,b)=>x+b.aulas,0),0),
-                                              sub: "blocos de 50 min",   icon: BookOpen },
-          { label: "Dia mais pesado", value: "Seg", sub: "Eng.SW + Ext.I",   icon: TrendingUp },
-          { label: "Dia mais leve",   value: "Qua", sub: "Lab. Circ. (2h)", icon: Star },
-        ].map(({ label, value, sub, icon: Icon }) => (
-          <div key={label} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-            <Icon size={14} className="text-gray-400 mb-1.5" />
-            <p className="text-xl font-bold text-gray-900">{value}</p>
-            <p className="text-xs text-gray-500">{label}</p>
-            <p className="text-xs text-gray-400">{sub}</p>
-          </div>
+          `📅 5 dias com aula`,
+          `📚 ${totalAulas} aulas/semana`,
+          `🔴 Seg — mais pesado`,
+          `🟢 Qua — mais leve`,
+        ].map(txt => (
+          <span key={txt} className="bg-white rounded-full px-3 py-1.5 text-xs font-medium text-[#1C1C1E] shadow-sm">{txt}</span>
         ))}
       </div>
     </div>
   );
 }
 
-// Badge da média parcial (Parte 4). "-" (sem nota) → "Aguardando".
+// ─── FASE 4 · TAB NOTAS ──────────────────────────────────────────────────────────
+function AbsenceCardMobile({ subject, faltas, onSetFaltas }) {
+  const meta = ATTENDANCE_META[subject.id];
+  const { limite, restam, pct, state } = calcAbsence(meta, faltas);
+  const rf = state === "danger";
+  const warn = state === "warning" || pct > 75;
+
+  const topBorder = rf ? "bg-red-500" : warn ? "bg-amber-400" : "bg-gray-200";
+  const fill = rf ? "bg-red-500" : warn ? "bg-amber-400" : "bg-violet-500";
+  const status = rf
+    ? { cls: "bg-red-100 text-red-600", label: "● RF" }
+    : warn
+    ? { cls: "bg-amber-100 text-amber-600", label: "⚠ Alerta" }
+    : { cls: "bg-green-100 text-green-600", label: "✓ Seguro" };
+
+  return (
+    <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+      <div className={`h-1 w-full ${topBorder}`} />
+      <div className="px-4 py-4">
+        <div className="flex items-center gap-2">
+          <span className="bg-gray-100 text-gray-500 rounded-lg px-2 py-0.5 text-xs shrink-0">{subject.id}</span>
+          <h4 className="text-[16px] font-bold text-[#1C1C1E] leading-tight flex-1">{subject.name}</h4>
+          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${status.cls}`}>{status.label}</span>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between">
+          <button onClick={() => onSetFaltas(Math.max(0, faltas - 1))}
+            className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 transition-colors">
+            <Minus size={16} />
+          </button>
+          <span className={`text-[32px] font-bold leading-none ${rf ? "text-[#FF3B30]" : "text-gray-900"}`}>{faltas}</span>
+          <button onClick={() => onSetFaltas(Math.min(meta.cargaHoraria, faltas + 1))}
+            className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 transition-colors">
+            <Plus size={16} />
+          </button>
+          <span className="text-[13px] text-[#6D6D72]">/ {limite} max</span>
+        </div>
+
+        <div className="mt-2 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+          <div className={`h-full rounded-full ${fill} transition-all duration-500`} style={{ width: `${pct}%` }} />
+        </div>
+
+        <p className="mt-2 text-xs text-[#6D6D72]">
+          {meta.aulasPorDia} aulas/dia · {Math.max(0, restam)} faltas restantes
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function notaBadge(media) {
   const m = parseFloat(media);
   if (media === "-" || Number.isNaN(m)) return { cls: "bg-gray-50 text-gray-400", label: "Aguardando" };
-  if (m >= 6.0) return { cls: "bg-green-50 text-green-700", label: "Aprovado" };
-  if (m >= 4.0) return { cls: "bg-amber-50 text-amber-700", label: "Prova Final" };
-  return { cls: "bg-red-50 text-red-700", label: "Reprovado" };
+  if (m >= 6.0) return { cls: "bg-green-50 text-green-700", label: "✓ Aprovado" };
+  if (m >= 4.0) return { cls: "bg-amber-50 text-amber-700", label: "⚡ Prova Final" };
+  return { cls: "bg-red-50 text-red-700", label: "✗ Reprovado" };
 }
 
-function NotaCard({ subject, nota, faltasCount }) {
-  const meta = ATTENDANCE_META[subject.id];
+function NotaCardMobile({ subject, nota, faltas }) {
   const n = nota || { p1: "-", media: "-", af: "-", mfd: "-" };
   const badge = notaBadge(n.media);
   const mediaNum = parseFloat(n.media);
-  const absState = meta ? calcAbsence(meta, faltasCount).state : "safe";
-  const topBorder = absState === "danger" ? "border-red-500"
-    : (!Number.isNaN(mediaNum) && mediaNum >= 4 && mediaNum < 6) ? "border-amber-400"
-    : "border-gray-300";
-  const valClass = (v) => `text-xl leading-none ${v === "-" ? "text-gray-300 font-normal" : "text-gray-900 font-semibold"}`;
+  const st = absState(subject.id, faltas);
+  const topBorder = st?.state === "danger" ? "bg-red-500"
+    : (!Number.isNaN(mediaNum) && mediaNum >= 4 && mediaNum < 6) ? "bg-amber-400"
+    : "bg-gray-200";
+  const valClass = (v) => `text-[22px] leading-none font-bold ${v === "-" ? "text-gray-200" : "text-[#1C1C1E]"}`;
+
   return (
-    <div className={`rounded-xl border border-gray-200 border-t-2 ${topBorder} bg-white overflow-hidden shadow-sm`}>
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2 pb-3 mb-3 border-b border-gray-100">
-          <div>
-            <span className="text-xs text-gray-500 font-medium">{subject.id}</span>
-            <h4 className="text-sm font-bold text-gray-900 leading-snug">{subject.name}</h4>
-          </div>
-          {meta && <span className="text-xs text-gray-500 shrink-0">{meta.cargaHoraria}h</span>}
+    <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+      <div className={`h-1 w-full ${topBorder}`} />
+      <div className="px-4 py-4">
+        <div className="flex items-center gap-2">
+          <span className="bg-gray-100 text-gray-500 rounded-lg px-2 py-0.5 text-xs shrink-0">{subject.id}</span>
+          <h4 className="text-[16px] font-bold text-[#1C1C1E] leading-tight flex-1">{subject.name}</h4>
         </div>
-        <div className="grid grid-cols-4 gap-2 text-center pb-3 mb-3 border-b border-gray-100">
+        <div className="grid grid-cols-4 gap-2 mt-3 text-center">
           {[["P1", n.p1], ["Média", n.media], ["AF", n.af], ["MFD", n.mfd]].map(([label, v]) => (
             <div key={label}>
-              <p className="text-gray-400 text-xs uppercase mb-1.5">{label}</p>
               <p className={valClass(v)}>{v}</p>
+              <p className="text-[10px] uppercase text-[#6D6D72] mt-1">{label}</p>
             </div>
           ))}
         </div>
-        <span className={`inline-block text-xs px-2.5 py-1 rounded-full font-medium ${badge.cls}`}>{badge.label}</span>
+        <span className={`inline-block mt-3 text-xs font-medium px-2.5 py-1 rounded-full ${badge.cls}`}>{badge.label}</span>
       </div>
     </div>
   );
 }
 
-function AbsenceTab({ subjects, faltas, setFaltas, notas, onOpenSuap }) {
+function TabNotas({ subjects, faltas, setFaltas, notas, onOpenSuap }) {
   const [view, setView] = useState("freq");
   const currentSubs = subjects.filter(s => s.status === "current" && ATTENDANCE_META[s.id]);
-  const alerts = currentSubs.filter(s => {
-    const { state } = calcAbsence(ATTENDANCE_META[s.id], faltas[s.id] || 0);
-    return state !== "safe";
-  });
+  const rfSubs = currentSubs.filter(s => absState(s.id, faltas[s.id] || 0)?.state === "danger");
   const temNotas = Object.keys(notas || {}).length > 0;
+  const notaSubs = subjects.filter(s => s.status === "current");
 
   return (
-    <div className="space-y-6">
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+    <div>
+      <CourseHeader />
+
+      {/* SEGMENTED */}
+      <div className="mx-4 mt-2 bg-gray-100 rounded-2xl p-1 flex">
         {[["freq", "Frequência"], ["notas", "Notas"]].map(([k, label]) => (
           <button key={k} onClick={() => setView(k)}
-            className={`px-3.5 py-1.5 rounded-md text-xs font-semibold transition-colors ${
-              view === k ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}>
+            className={`flex-1 py-2 text-sm font-medium rounded-xl transition-colors ${
+              view === k ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
             {label}
           </button>
         ))}
@@ -253,105 +392,85 @@ function AbsenceTab({ subjects, faltas, setFaltas, notas, onOpenSuap }) {
 
       {view === "freq" ? (
         <>
-      {alerts.length > 0 && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle size={16} className="text-amber-600" />
-            <span className="text-sm font-bold text-amber-700">{alerts.length} disciplina{alerts.length > 1 ? "s" : ""} em situação de alerta</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {alerts.map(s => {
-              const { state, diasRestantes } = calcAbsence(ATTENDANCE_META[s.id], faltas[s.id] || 0);
-              return (
-                <span key={s.id} className={`text-xs px-2.5 py-1 rounded-full font-medium border ${state === "danger" ? "bg-red-50 text-red-700 border-red-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
-                  {ATTENDANCE_META[s.id].shortName}{state !== "danger" && ` · ${diasRestantes}d restantes`}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      <p className="text-xs text-gray-500">
-        Use os botões <span className="font-bold text-gray-900">+/−</span> para registrar faltas.
-        O sistema calcula quantos <span className="font-bold text-gray-900">dias de aula</span> você
-        ainda pode perder antes de reprovar (mínimo de 75% de presença).
-      </p>
-
-      {currentSubs.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm">
-          <p className="text-sm text-gray-500">
-            Nenhuma das suas disciplinas marcadas como <span className="font-bold text-gray-900">"Cursando"</span> tem
-            controle de frequência cadastrado.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-4 lg:items-start">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:col-span-2">
-            {currentSubs.map(s => (
-              <AbsenceCard key={s.id} subject={s}
-                faltas={faltas[s.id] || 0}
-                onSetFaltas={(v) => setFaltas(prev => ({ ...prev, [s.id]: v }))} />
-            ))}
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm lg:col-span-1">
-            <div className="px-4 py-3 border-b border-gray-200">
-              <p className="text-sm font-semibold text-gray-900">Resumo Geral de Frequência</p>
+          {rfSubs.length > 0 && (
+            <div className="mx-4 mt-3 bg-orange-50 border border-orange-200 rounded-2xl px-4 py-3 flex gap-3 items-start">
+              <span className="text-lg leading-none">⚠</span>
+              <div>
+                <p className="text-sm font-bold text-orange-600">Atenção Crítica</p>
+                <p className="text-xs text-[#6D6D72] mt-0.5">
+                  {rfSubs.length} disciplina{rfSubs.length > 1 ? "s" : ""} com limite de faltas atingido (RF).
+                </p>
+              </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    {["Disciplina","Faltas","Restam","Status"].map(h => (
-                      <th key={h} className="px-3 py-2 text-left text-gray-500 font-medium whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentSubs.map(s => {
-                    const meta = ATTENDANCE_META[s.id];
-                    const f = faltas[s.id] || 0;
-                    const { restam, state } = calcAbsence(meta, f);
-                    const statusLabel = { safe: "Seguro", warning: "Alerta", danger: "RF" }[state];
-                    const statusClass = {
-                      safe: "bg-gray-100 text-gray-600",
-                      warning: "bg-amber-50 text-amber-700 border border-amber-200",
-                      danger: "bg-red-50 text-red-700 border border-red-200",
-                    }[state];
-                    return (
-                      <tr key={s.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                        <td className="px-3 py-2.5 text-gray-900 font-medium whitespace-nowrap">{meta.shortName}</td>
-                        <td className="px-3 py-2.5 font-bold text-gray-900">{f}</td>
-                        <td className={`px-3 py-2.5 font-medium ${restam <= 0 ? "text-red-600" : restam <= meta.aulasPorDia * 2 ? "text-amber-600" : "text-gray-700"}`}>{Math.max(0, restam)}</td>
-                        <td className="px-3 py-2.5"><span className={`px-2 py-0.5 rounded-full whitespace-nowrap ${statusClass}`}>{statusLabel}</span></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+          )}
+
+          {currentSubs.length === 0 ? (
+            <div className="mx-4 mt-3 bg-white rounded-2xl px-4 py-8 text-center text-sm text-[#6D6D72] shadow-sm">
+              Nenhuma disciplina em curso com controle de frequência.
             </div>
-          </div>
-        </div>
-      )}
+          ) : (
+            <>
+              <div className="mx-4 mt-3 flex flex-col gap-3">
+                {currentSubs.map(s => (
+                  <AbsenceCardMobile key={s.id} subject={s}
+                    faltas={faltas[s.id] || 0}
+                    onSetFaltas={(v) => setFaltas(prev => ({ ...prev, [s.id]: v }))} />
+                ))}
+              </div>
+
+              {/* RESUMO */}
+              <div className="mx-4 mt-4 mb-2 bg-white rounded-2xl px-4 py-4 shadow-sm">
+                <p className="text-[15px] font-bold text-[#1C1C1E] mb-3">Resumo Semestral</p>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-[#6D6D72] text-xs">
+                      <th className="pb-2 font-medium">Disciplina</th>
+                      <th className="pb-2 font-medium text-center">Faltas/Lim.</th>
+                      <th className="pb-2 font-medium text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentSubs.map((s, i) => {
+                      const meta = ATTENDANCE_META[s.id];
+                      const f = faltas[s.id] || 0;
+                      const { limite, state } = calcAbsence(meta, f);
+                      const rf = state === "danger";
+                      return (
+                        <tr key={s.id} className={i % 2 === 1 ? "bg-gray-50" : ""}>
+                          <td className="py-2 pl-1 text-[#1C1C1E]">{meta.shortName}</td>
+                          <td className="py-2 text-center text-[#6D6D72]">{f}/{limite}</td>
+                          <td className={`py-2 pr-1 text-right font-bold ${rf ? "text-[#FF3B30]" : "text-[#34C759]"}`}>
+                            {rf ? "RF" : "OK"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </>
       ) : (
         !temNotas ? (
-          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-            <p className="text-sm text-gray-500 mb-4">Sincronize com o SUAP para ver suas notas.</p>
+          <div className="mx-4 mt-6 bg-white rounded-2xl px-4 py-10 text-center shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center mx-auto mb-3">
+              <RefreshCw size={22} className="text-violet-600" />
+            </div>
+            <p className="text-sm text-[#6D6D72] mb-4">Sincronize com o SUAP para ver suas notas.</p>
             <button onClick={onOpenSuap}
-              className="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
-              <RefreshCw size={14} /> Sincronizar SUAP
+              className="inline-flex items-center gap-2 bg-violet-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
+              <RefreshCw size={15} /> Sincronizar SUAP
             </button>
           </div>
-        ) : currentSubs.length === 0 ? (
-          <div className="rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm">
-            <p className="text-sm text-gray-500">Nenhuma disciplina em curso para exibir notas.</p>
+        ) : notaSubs.length === 0 ? (
+          <div className="mx-4 mt-3 bg-white rounded-2xl px-4 py-8 text-center text-sm text-[#6D6D72] shadow-sm">
+            Nenhuma disciplina em curso para exibir notas.
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {currentSubs.map(s => (
-              <NotaCard key={s.id} subject={s} nota={notas[s.id]} faltasCount={faltas[s.id] || 0} />
+          <div className="mx-4 mt-3 mb-2 flex flex-col gap-3">
+            {notaSubs.map(s => (
+              <NotaCardMobile key={s.id} subject={s} nota={notas[s.id]} faltas={faltas[s.id] || 0} />
             ))}
           </div>
         )
@@ -360,105 +479,11 @@ function AbsenceTab({ subjects, faltas, setFaltas, notas, onOpenSuap }) {
   );
 }
 
-function SubjectCard({ subject, editMode, onCycleStatus }) {
-  const s = STATUS[subject.status];
-  return (
-    <div
-      onClick={editMode ? () => onCycleStatus(subject.id) : undefined}
-      title={editMode ? "Clique para alterar o status" : undefined}
-      className={`rounded-xl border ${s.border} ${s.bg} p-3.5 transition-all duration-200 hover:border-gray-300 hover:shadow-sm
-        ${editMode ? "cursor-pointer ring-1 ring-transparent hover:ring-gray-300" : ""}`}>
-      <div className="flex items-start justify-between gap-2">
-        <span className="text-sm font-medium text-gray-900 leading-snug">{subject.name}</span>
-        <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap shrink-0 font-medium ${s.badge}`}>{subject.id}</span>
-      </div>
-      <div className="mt-2 flex flex-wrap gap-2 items-center">
-        {subject.sem && (
-          <span className="text-[10px] uppercase tracking-widest text-gray-400">{subject.sem}º período</span>
-        )}
-      </div>
-      <div className="mt-2 flex items-center gap-1.5">
-        <span className={`text-xs ${s.text} flex items-center gap-1`}>
-          {subject.status === "done"    && <CheckCircle2 size={11} />}
-          {subject.status === "current" && <Circle size={11} className="animate-pulse" />}
-          {subject.status === "next"    && <ArrowRight size={11} />}
-          {subject.status === "future"  && <Clock size={11} />}
-          {s.label}
-        </span>
-        {subject.prereqs.length > 0 && <span className="text-xs text-gray-400">· {subject.prereqs.length} pré-req.</span>}
-      </div>
-    </div>
-  );
-}
-
-function OverviewTab({ subjects, editMode, onCycleStatus }) {
-  const current = subjects.filter(s => s.status === "current");
-  const next    = subjects.filter(s => s.status === "next");
-  const future  = subjects.filter(s => s.status === "future");
-  const Section = ({ title, icon: Icon, items, color }) => (
-    <div>
-      <div className="flex items-center gap-2 mb-3">
-        <Icon size={15} className={color} />
-        <h3 className={`text-sm font-semibold ${color}`}>{title}</h3>
-        <span className="text-xs text-gray-400 ml-auto">{items.length} disciplinas</span>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-        {items.map(s => <SubjectCard key={s.id} subject={s} editMode={editMode} onCycleStatus={onCycleStatus} />)}
-      </div>
-    </div>
-  );
-  const termGroups = CURRICULUM_PERIODS.map(period => ({
-    ...period,
-    items: subjects.filter(s => s.sem === period.id),
-  })).filter(period => period.items.length > 0);
-
-  return (
-    <div className="space-y-8">
-      {editMode && (
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 flex items-center gap-2">
-          <Pencil size={14} className="text-gray-500 shrink-0" />
-          <p className="text-xs text-gray-600">
-            Modo de edição ativo: clique em qualquer disciplina para alternar entre
-            <span className="font-bold text-gray-900"> Concluída → Cursando → Próxima → Futura</span>.
-          </p>
-        </div>
-      )}
-
-      <Section title="Cursando"            icon={BookOpen}   items={current} color="text-gray-900" />
-      <div className="border-t border-gray-200" />
-      <Section title="Próximos Passos"     icon={ArrowRight} items={next}    color="text-gray-900" />
-      <div className="border-t border-gray-200" />
-      <Section title="Disciplinas Futuras" icon={Layers}     items={future}  color="text-gray-500" />
-
-      <div className="border-t border-gray-200" />
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Layers size={15} className="text-gray-500" />
-          <h3 className="text-sm font-semibold text-gray-500">Grade Curricular por Período (referência)</h3>
-        </div>
-        <div className="space-y-4">
-          {termGroups.map(term => (
-            <div key={term.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-widest">{term.label}</p>
-                  <p className="text-sm font-bold text-gray-900">{term.items.length} disciplina{term.items.length !== 1 ? "s" : ""}</p>
-                </div>
-                <span className="text-xs text-gray-400">{term.id}º sem.</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                {term.items.map(s => <SubjectCard key={s.id} subject={s} editMode={editMode} onCycleStatus={onCycleStatus} />)}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FlowTab({ subjects }) {
+// ─── FASE 5 · SUB-TELA ANÁLISE DE FLUXO ──────────────────────────────────────────
+function FluxoScreen({ subjects, onBack }) {
   const [selected, setSelected] = useState(null);
+  const [query, setQuery] = useState("");
+
   const analysis = useMemo(() => {
     if (!selected) return null;
     const s = subjects.find(x => x.id === selected);
@@ -469,177 +494,333 @@ function FlowTab({ subjects }) {
     return { subject: s, prereqNames, unlocks, cascade };
   }, [selected, subjects]);
 
-  const grouped = useMemo(() => ({
-    done:    subjects.filter(s => s.status === "done"),
-    current: subjects.filter(s => s.status === "current"),
-    next:    subjects.filter(s => s.status === "next"),
-    future:  subjects.filter(s => s.status === "future"),
-  }), [subjects]);
+  const q = query.trim().toLowerCase();
+  const match = (s) => !q || s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q);
 
-  const ListSection = ({ title, items, color }) => items.length === 0 ? null : (
-    <div className="mb-2">
-      <p className={`text-xs font-bold uppercase tracking-widest mb-1.5 px-2 ${color}`}>{title}</p>
-      {items.map(s => {
-        const isSelected = selected === s.id;
-        return (
-          <button key={s.id} onClick={() => setSelected(isSelected ? null : s.id)}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-150 mb-0.5 flex items-center gap-2
-              ${isSelected ? "bg-gray-100 border-gray-300 border text-gray-900 font-medium" : "text-gray-500 hover:bg-gray-50 hover:text-gray-900 border border-transparent"}`}>
-            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSelected ? "bg-gray-900" : "bg-gray-300"}`} />
-            <span className="truncate">{s.name}</span>
-            <span className="ml-auto text-xs text-gray-400 shrink-0">{s.id}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
+  const groups = [
+    { key: "current", title: "Cursando",   items: subjects.filter(s => s.status === "current" && match(s)) },
+    { key: "done",    title: "Concluídas", items: subjects.filter(s => s.status === "done" && match(s)) },
+    { key: "next",    title: "Próximas",   items: subjects.filter(s => s.status === "next" && match(s)) },
+    { key: "future",  title: "Futuras",    items: subjects.filter(s => s.status === "future" && match(s)) },
+  ].filter(g => g.items.length > 0);
 
   return (
-    <div className="flex gap-4 min-h-[500px]">
-      <div className="w-64 shrink-0 bg-white border border-gray-200 rounded-xl p-3 overflow-y-auto max-h-[600px] shadow-sm">
-        <p className="text-xs text-gray-500 mb-3 px-2 font-medium">Selecione uma disciplina</p>
-        <ListSection title="Concluídas" items={grouped.done}    color="text-gray-400" />
-        <ListSection title="Cursando"   items={grouped.current} color="text-gray-900" />
-        <ListSection title="Próximas"   items={grouped.next}    color="text-gray-500" />
-        <ListSection title="Futuras"    items={grouped.future}  color="text-gray-400" />
+    <div>
+      <div className="bg-white px-4 pt-5 pb-3 border-b border-gray-100 flex items-center gap-2">
+        <button onClick={onBack} className="flex items-center gap-1 text-violet-600 text-sm font-medium">
+          <ChevronLeft size={18} /> Mais
+        </button>
+        <h1 className="text-[17px] font-bold text-[#1C1C1E] absolute left-1/2 -translate-x-1/2">Análise de Fluxo</h1>
       </div>
-      <div className="flex-1 bg-white border border-gray-200 rounded-xl p-5 overflow-y-auto max-h-[600px] shadow-sm">
-        {!analysis ? (
-          <div className="h-full flex flex-col items-center justify-center text-center gap-3 opacity-50">
-            <Network size={40} className="text-gray-400" />
-            <p className="text-gray-500 text-sm">Selecione uma disciplina para ver sua análise de fluxo</p>
-          </div>
-        ) : (
-          <div className="space-y-5">
-            <div className={`rounded-xl border ${STATUS[analysis.subject.status].border} ${STATUS[analysis.subject.status].bg} p-4`}>
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <span className={`text-xs font-bold ${STATUS[analysis.subject.status].text}`}>{analysis.subject.id}</span>
-                  <h3 className="text-lg font-bold text-gray-900 mt-0.5">{analysis.subject.name}</h3>
-                </div>
-                <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS[analysis.subject.status].badge}`}>
-                  {STATUS[analysis.subject.status].label}
-                </span>
-              </div>
-            </div>
 
-            <div className="rounded-xl bg-gray-50 border border-gray-200 p-4 flex items-center gap-3">
-              <TrendingUp size={20} className="text-gray-400 shrink-0" />
-              <div>
-                <p className="text-gray-900 font-bold text-xl leading-none">{analysis.cascade}</p>
-                <p className="text-gray-500 text-xs mt-0.5">disciplinas afetadas em cascata</p>
-              </div>
-              <div className="ml-auto text-xs text-gray-400 text-right">
-                <p>{Math.round((analysis.cascade / subjects.length) * 100)}% do curso</p>
-              </div>
-            </div>
+      {/* SEARCH */}
+      <div className="mx-4 mt-3">
+        <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2.5">
+          <Search size={16} className="text-gray-400" />
+          <input value={query} onChange={e => setQuery(e.target.value)}
+            placeholder="Buscar disciplina ou código"
+            className="bg-transparent text-sm text-[#1C1C1E] placeholder-gray-400 focus:outline-none flex-1" />
+        </div>
+      </div>
 
-            <div>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><ChevronRight size={12} /> Depende de</p>
-              {analysis.prereqNames.length === 0 ? <p className="text-sm text-gray-400 italic">Nenhum pré-requisito</p> : (
-                <div className="flex flex-wrap gap-2">
-                  {analysis.prereqNames.map(p => (
-                    <button key={p.id} onClick={() => setSelected(p.id)}
-                      className={`text-xs px-2.5 py-1.5 rounded-lg border ${STATUS[p.status].border} ${STATUS[p.status].bg} ${STATUS[p.status].text} font-medium hover:border-gray-300 transition-all`}>
-                      {p.name}
+      {/* LISTA AGRUPADA */}
+      <div className="mx-4 mt-3 flex flex-col gap-4 pb-2">
+        {groups.map(g => (
+          <div key={g.key}>
+            <p className="text-[11px] uppercase tracking-wider text-[#6D6D72] mb-1 px-1">{g.title}</p>
+            <div className="bg-white rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-100">
+              {g.items.map(s => {
+                const isSel = selected === s.id;
+                return (
+                  <div key={s.id}>
+                    <button onClick={() => setSelected(isSel ? null : s.id)}
+                      className="w-full px-4 py-3 flex items-center gap-3 text-left">
+                      <span className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                        isSel ? "border-violet-600" : "border-gray-300"}`}>
+                        {isSel && <span className="w-2 h-2 rounded-full bg-violet-600" />}
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-[15px] text-[#1C1C1E] truncate">{s.name}</span>
+                        <span className="block text-xs text-[#6D6D72]">{s.id} · {s.sem}º Semestre</span>
+                      </span>
+                      {s.status === "done" && <CheckCircle2 size={16} className="text-[#34C759] shrink-0" />}
                     </button>
-                  ))}
-                </div>
-              )}
-            </div>
 
-            <div>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Zap size={12} className="text-gray-400" /> Libera Diretamente</p>
-              {analysis.unlocks.length === 0 ? <p className="text-sm text-gray-400 italic">Nenhuma matéria desbloqueada</p> : (
-                <div className="flex flex-wrap gap-2">
-                  {analysis.unlocks.map(u => (
-                    <button key={u.id} onClick={() => setSelected(u.id)}
-                      className={`text-xs px-2.5 py-1.5 rounded-lg border ${STATUS[u.status].border} ${STATUS[u.status].bg} ${STATUS[u.status].text} font-medium hover:border-gray-300 transition-all`}>
-                      {u.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                    {/* PAINEL EXPANDIDO */}
+                    {isSel && analysis && (
+                      <div className="px-3 pb-3 bg-gray-50">
+                        <div className="bg-violet-600 rounded-2xl px-4 py-3 mt-1">
+                          <span className="inline-block text-[10px] font-semibold text-violet-100 bg-white/20 rounded-full px-2 py-0.5 mb-1">
+                            ● {STATUS[analysis.subject.status].label.toUpperCase()} | {analysis.subject.id}
+                          </span>
+                          <p className="text-[18px] font-bold text-white leading-tight">{analysis.subject.name}</p>
+                        </div>
 
-            {analysis.cascade > 0 && (
-              <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><GitBranch size={12} className="text-gray-400" /> Peso no Curso</p>
-                <div className="flex justify-between text-xs text-gray-500 mb-1">
-                  <span>Impacto cascata</span>
-                  <span className="text-gray-900 font-bold">{analysis.cascade}/{subjects.length}</span>
-                </div>
-                <ProgressBar value={(analysis.cascade / subjects.length) * 100} />
-              </div>
-            )}
+                        <div className="bg-white rounded-2xl mt-2 divide-y divide-gray-100 overflow-hidden">
+                          <div className="px-4 py-3">
+                            <p className="text-[11px] uppercase tracking-wider text-[#6D6D72] mb-2">Depende de (pré-requisitos)</p>
+                            {analysis.prereqNames.length === 0 ? (
+                              <p className="text-sm text-gray-400 italic">Nenhum pré-requisito</p>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                {analysis.prereqNames.map(p => (
+                                  <button key={p.id} onClick={() => setSelected(p.id)}
+                                    className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                                      p.status === "done" ? "bg-green-100 text-green-700"
+                                        : p.status === "current" ? "bg-violet-100 text-violet-700"
+                                        : "bg-gray-100 text-gray-600"}`}>
+                                    {p.name}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="px-4 py-3">
+                            <p className="text-[11px] uppercase tracking-wider text-[#6D6D72] mb-2">Libera diretamente</p>
+                            {analysis.unlocks.length === 0 ? (
+                              <div className="flex items-center gap-2 text-sm text-gray-400">
+                                <Lock size={14} /> Nenhuma matéria
+                              </div>
+                            ) : (
+                              <div className="flex flex-col gap-1.5">
+                                {analysis.unlocks.map(u => (
+                                  <button key={u.id} onClick={() => setSelected(u.id)}
+                                    className="flex items-center gap-2 text-sm text-[#1C1C1E]">
+                                    <span className="flex-1 text-left truncate">{u.name}</span>
+                                    <ArrowRight size={14} className="text-violet-500 shrink-0" />
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {analysis.cascade > 0 && (
+                          <div className="bg-amber-50 rounded-2xl mt-2 px-4 py-3 flex gap-3 items-start">
+                            <GitBranch size={18} className="text-orange-500 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-bold text-orange-700">Impacto em Cascata</p>
+                              <p className="text-xs text-[#6D6D72] mt-0.5">
+                                Esta disciplina desbloqueia {analysis.cascade} matéria{analysis.cascade > 1 ? "s" : ""} nos próximos semestres.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
+        ))}
+        {groups.length === 0 && (
+          <p className="text-center text-sm text-[#6D6D72] py-8">Nenhuma disciplina encontrada.</p>
         )}
       </div>
     </div>
   );
 }
 
-function SuapModal({ onSync, onClose, loading, error }) {
+// ─── SUB-TELA EDITAR PROGRESSO ────────────────────────────────────────────────────
+function EditarScreen({ subjects, onCycleStatus, onBack }) {
+  const groups = CURRICULUM_PERIODS.map(p => ({
+    ...p, items: subjects.filter(s => s.sem === p.id),
+  })).filter(p => p.items.length > 0);
+
+  return (
+    <div>
+      <div className="bg-white px-4 pt-5 pb-3 border-b border-gray-100 flex items-center gap-2 relative">
+        <button onClick={onBack} className="flex items-center gap-1 text-violet-600 text-sm font-medium">
+          <ChevronLeft size={18} /> Mais
+        </button>
+        <h1 className="text-[17px] font-bold text-[#1C1C1E] absolute left-1/2 -translate-x-1/2">Editar Progresso</h1>
+      </div>
+
+      <div className="mx-4 mt-3 bg-violet-50 rounded-2xl px-4 py-3 flex gap-2 items-start">
+        <Pencil size={15} className="text-violet-600 shrink-0 mt-0.5" />
+        <p className="text-xs text-violet-700">
+          Toque numa disciplina para alternar entre <b>Concluída → Cursando → Próxima → Futura</b>.
+        </p>
+      </div>
+
+      <div className="mx-4 mt-3 flex flex-col gap-4 pb-2">
+        {groups.map(g => (
+          <div key={g.id}>
+            <p className="text-[11px] uppercase tracking-wider text-[#6D6D72] mb-1 px-1">{g.label}</p>
+            <div className="bg-white rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-100">
+              {g.items.map(s => {
+                const st = STATUS[s.status];
+                return (
+                  <button key={s.id} onClick={() => onCycleStatus(s.id)}
+                    className="w-full px-4 py-3 flex items-center gap-3 text-left active:bg-gray-50">
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-[15px] text-[#1C1C1E] truncate">{s.name}</span>
+                      <span className="block text-xs text-[#6D6D72]">{s.id}</span>
+                    </span>
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${st.badge}`}>{st.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── FASE 5 · TAB MAIS ───────────────────────────────────────────────────────────
+function SettingsRow({ icon: Icon, iconBg, label, onClick, trailing }) {
+  return (
+    <button onClick={onClick} className="w-full px-4 py-3.5 flex items-center gap-3 text-left active:bg-gray-50">
+      <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
+        <Icon size={16} className="text-white" />
+      </span>
+      <span className="text-[15px] text-[#1C1C1E] flex-1">{label}</span>
+      {trailing ?? <ChevronRight size={16} className="text-gray-300" />}
+    </button>
+  );
+}
+
+function TabMais({ displayName, onOpenSuap, onOpenFluxo, onOpenEditar, onOpenSobre, onLogout }) {
+  return (
+    <div>
+      <CourseHeader />
+
+      {/* PERFIL */}
+      <div className="bg-white mx-4 mt-4 rounded-2xl px-4 py-4 flex gap-3 items-center shadow-sm">
+        <div className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+          <User size={22} className="text-gray-500" />
+        </div>
+        <div>
+          <p className="text-[17px] font-bold text-[#1C1C1E] leading-tight">{displayName}</p>
+          <p className="text-[13px] text-[#6D6D72]">Estudante</p>
+        </div>
+      </div>
+
+      {/* ACADÊMICO */}
+      <div className="mx-4 mt-4">
+        <p className="text-[11px] uppercase tracking-wider text-[#6D6D72] mb-2 px-1">Acadêmico</p>
+        <div className="bg-white rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-100">
+          <SettingsRow icon={RefreshCw} iconBg="bg-violet-500" label="Sincronizar SUAP" onClick={onOpenSuap} />
+          <SettingsRow icon={Network}   iconBg="bg-orange-500" label="Análise de Fluxo" onClick={onOpenFluxo} />
+          <SettingsRow icon={Pencil}    iconBg="bg-green-500"  label="Editar progresso" onClick={onOpenEditar} />
+        </div>
+      </div>
+
+      {/* APP */}
+      <div className="mx-4 mt-4">
+        <p className="text-[11px] uppercase tracking-wider text-[#6D6D72] mb-2 px-1">App</p>
+        <div className="bg-white rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-100">
+          <SettingsRow icon={Moon} iconBg="bg-gray-800" label="Tema escuro"
+            trailing={<span className="w-10 h-6 rounded-full bg-gray-200 flex items-center px-0.5"><span className="w-5 h-5 rounded-full bg-white shadow" /></span>} />
+          <SettingsRow icon={Info} iconBg="bg-gray-500" label="Sobre o app" onClick={onOpenSobre} />
+        </div>
+      </div>
+
+      {/* SAIR */}
+      <div className="mx-4 mt-4 mb-2 bg-white rounded-2xl shadow-sm">
+        <button onClick={onLogout} className="w-full text-center text-[#FF3B30] py-3.5 font-medium">Sair</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── MODAL SUAP (bottom sheet) ─────────────────────────────────────────────────
+function SuapSheet({ onSync, onClose, loading, error }) {
   const [matricula, setMatricula] = useState("");
   const [senha, setSenha] = useState("");
+  const [showPw, setShowPw] = useState(false);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm bg-white border border-gray-200 rounded-xl shadow-lg p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-gray-900">Sincronizar com SUAP</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-900 transition-colors">
-            <XCircle size={16} />
-          </button>
+    <div className="fixed inset-0 z-[60] bg-black/50 flex items-end justify-center" onClick={onClose}>
+      <div className="w-full max-w-[430px] bg-white rounded-t-3xl px-5 pt-2 pb-8" onClick={e => e.stopPropagation()}>
+        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+        <div className="w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center mx-auto mb-3">
+          <RefreshCw size={22} className="text-violet-600" />
         </div>
-        <p className="text-xs text-gray-500">
-          Suas credenciais são enviadas uma única vez ao Worker e nunca armazenadas.
-          As faltas ficam salvas localmente na sua conta.
-        </p>
-        <div className="space-y-2">
-          <input value={matricula} onChange={e => setMatricula(e.target.value)}
-            placeholder="Matrícula SUAP"
-            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5
-              text-sm text-gray-900 placeholder-gray-400 focus:outline-none
-              focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all" />
-          <input type="password" value={senha} onChange={e => setSenha(e.target.value)}
-            placeholder="Senha"
-            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5
-              text-sm text-gray-900 placeholder-gray-400 focus:outline-none
-              focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all" />
+        <h2 className="text-[20px] font-bold text-[#1C1C1E] text-center">Sincronizar com SUAP</h2>
+        <p className="text-sm text-[#6D6D72] text-center mt-1">Insira suas credenciais do SUAP para importar faltas e notas.</p>
+
+        <div className="mt-4 flex flex-col gap-3">
+          <div>
+            <label className="block text-sm font-medium text-[#1C1C1E] mb-1.5">Matrícula</label>
+            <input value={matricula} onChange={e => setMatricula(e.target.value)}
+              placeholder="Sua matrícula"
+              className="w-full bg-gray-50 rounded-xl px-3 py-3 text-sm text-[#1C1C1E] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-200" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#1C1C1E] mb-1.5">Senha do SUAP</label>
+            <div className="relative">
+              <input type={showPw ? "text" : "password"} value={senha} onChange={e => setSenha(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-gray-50 rounded-xl px-3 py-3 pr-10 text-sm text-[#1C1C1E] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-200" />
+              <button type="button" onClick={() => setShowPw(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
         </div>
+
+        <div className="bg-gray-50 rounded-xl px-3 py-2.5 mt-3 flex gap-2">
+          <span className="text-sm">ℹ️</span>
+          <p className="text-xs text-[#6D6D72]">Suas credenciais são usadas apenas para sincronização e nunca são armazenadas.</p>
+        </div>
+
         {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2">
-            <p className="text-xs text-red-700">{error}</p>
+          <div className="bg-red-50 rounded-xl px-3 py-2.5 mt-3">
+            <p className="text-xs text-[#FF3B30]">{error}</p>
           </div>
         )}
-        <div className="flex gap-2">
-          <button onClick={onClose} disabled={loading}
-            className="flex-1 py-2 rounded-lg border border-gray-200 text-sm text-gray-600
-              hover:text-gray-900 hover:border-gray-300 transition-colors">
-            Cancelar
-          </button>
-          <button onClick={() => onSync(matricula, senha)}
-            disabled={loading || !matricula || !senha}
-            className="flex-1 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-white text-sm
-              font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-            {loading ? "Sincronizando..." : "Sincronizar"}
-          </button>
-        </div>
+
+        <button onClick={() => onSync(matricula, senha)} disabled={loading || !matricula || !senha}
+          className="w-full mt-4 h-14 rounded-xl bg-violet-600 text-white font-semibold disabled:opacity-50 transition-opacity">
+          {loading ? "Sincronizando..." : "Sincronizar"}
+        </button>
+        <button onClick={onClose} disabled={loading}
+          className="w-full text-violet-600 text-center mt-3 font-medium">Cancelar</button>
       </div>
     </div>
   );
 }
 
+// ─── MODAL SOBRE ───────────────────────────────────────────────────────────────
+function SobreSheet({ onClose }) {
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/50 flex items-end justify-center" onClick={onClose}>
+      <div className="w-full max-w-[430px] bg-white rounded-t-3xl px-5 pt-2 pb-8" onClick={e => e.stopPropagation()}>
+        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+        <div className="w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center mx-auto mb-3">
+          <GraduationCap size={24} className="text-violet-600" />
+        </div>
+        <h2 className="text-[20px] font-bold text-[#1C1C1E] text-center">Dashboard Acadêmico</h2>
+        <p className="text-sm text-[#6D6D72] text-center mt-1">Engenharia de Computação · IFMT</p>
+        <div className="mt-4 flex flex-col gap-2 text-sm text-[#6D6D72]">
+          <div className="flex justify-between"><span>Versão</span><span className="text-[#1C1C1E] font-medium">2026.1</span></div>
+          <div className="flex justify-between"><span>Turma</span><span className="text-[#1C1C1E] font-medium">ENC 2026/1</span></div>
+        </div>
+        <p className="text-xs text-[#6D6D72] text-center mt-4">Feito por e para estudantes. Dados locais no seu navegador.</p>
+        <button onClick={onClose}
+          className="w-full mt-4 h-12 rounded-xl bg-violet-600 text-white font-semibold">Fechar</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── SHELL DO APP ────────────────────────────────────────────────────────────────
 const WORKER_URL = "https://suap-sync.painel-academico-2026.workers.dev";
 
 function Dashboard({ userKey, displayName, onLogout }) {
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState("geral");
+  const [mais, setMais] = useState(null); // null | "fluxo" | "editar"
   const [faltas, setFaltas] = useState({});
   const [statusOverrides, setStatusOverrides] = useState({});
   const [notas, setNotas] = useState({});
-  const [editMode, setEditMode] = useState(false);
   const [hydratedFor, setHydratedFor] = useState(null);
   const [suapModal, setSuapModal] = useState(false);
+  const [sobreModal, setSobreModal] = useState(false);
   const [suapLoading, setSuapLoading] = useState(false);
   const [suapError, setSuapError] = useState("");
 
@@ -660,7 +841,8 @@ function Dashboard({ userKey, displayName, onLogout }) {
   const subjects = useMemo(() => DEFAULT_SUBJECTS.map(s => ({
     ...s,
     status: statusOverrides[s.id] ?? "future",
-  })), [statusOverrides]);
+    faltas: faltas[s.id] || 0,
+  })), [statusOverrides, faltas]);
 
   function cycleStatus(id) {
     setStatusOverrides(prev => {
@@ -674,24 +856,17 @@ function Dashboard({ userKey, displayName, onLogout }) {
   const stats = useMemo(() => {
     const done    = subjects.filter(s => s.status === "done").length;
     const current = subjects.filter(s => s.status === "current").length;
-    const future  = subjects.filter(s => s.status !== "done" && s.status !== "current").length;
     const total   = subjects.length;
-    return { done, current, future, total, pct: Math.round((done / total) * 100) };
+    return { done, current, total, pct: Math.round((done / total) * 100) };
   }, [subjects]);
 
   const doneSubs = subjects.filter(s => s.status === "done");
-  const alertCount = subjects.filter(s => {
-    if (!ATTENDANCE_META[s.id]) return false;
-    const { state } = calcAbsence(ATTENDANCE_META[s.id], faltas[s.id] || 0);
-    return state !== "safe";
-  }).length;
 
-  const TABS = [
-    { id: "overview",  label: "Visão Geral",     icon: BarChart3,  iconName: "dashboard" },
-    { id: "schedule",  label: "Horário",          icon: Calendar,   iconName: "calendar_today" },
-    { id: "absence",   label: "Faltas",           icon: AlertTriangle, iconName: "warning", badge: alertCount },
-    { id: "flow",      label: "Análise de Fluxo", icon: GitBranch,  iconName: "insights" },
-  ];
+  // Badge de alerta na tab Notas: alguma disciplina em RF ou > 75% do limite.
+  const notasAlert = subjects.some(s => {
+    const st = absState(s.id, s.faltas);
+    return s.status === "current" && st && (st.state === "danger" || st.pct >= 75);
+  });
 
   async function sincronizarSUAP(matricula, senha) {
     setSuapLoading(true);
@@ -715,185 +890,61 @@ function Dashboard({ userKey, displayName, onLogout }) {
     }
   }
 
+  const NAV = [
+    { id: "geral",   icon: LayoutGrid,     label: "Geral" },
+    { id: "horario", icon: Calendar,       label: "Horário" },
+    { id: "notas",   icon: Star,           label: "Notas", badge: notasAlert },
+    { id: "mais",    icon: MoreHorizontal, label: "Mais" },
+  ];
+
+  function goTab(id) {
+    setTab(id);
+    setMais(null);
+  }
+
   return (
-    <div className="bg-background text-on-background min-h-screen flex antialiased">
-      <nav className="hidden lg:flex flex-col fixed left-0 top-0 h-full py-8 w-64 bg-white border-r border-gray-200 z-40">
-        <div className="px-6 mb-8 flex flex-col items-center text-center">
-          <div className="w-16 h-16 rounded-full bg-gray-100 mb-4 flex items-center justify-center border border-gray-200">
-            <School size={28} className="text-gray-700" />
-          </div>
-          <h2 className="font-headline-md text-headline-md font-black text-gray-900 mb-1">Dashboard Acadêmico</h2>
-          <p className="font-body-md text-body-md text-gray-500">Engenharia de Computação · IFMT</p>
-        </div>
-        <div className="px-6 mb-8">
-          <div className="bg-gray-100 rounded-full h-2 w-full overflow-hidden">
-            <div className="bg-gray-900 h-full" style={{ width: `${stats.pct}%` }} />
-          </div>
-          <p className="font-label-caps text-label-caps text-gray-500 mt-2 text-center">{stats.pct}% concluído</p>
-        </div>
-        <ul className="flex flex-col flex-1 space-y-1 px-4">
-          {TABS.map(({ id, label, icon: Icon, badge }) => (
-            <li key={id}>
-              <button onClick={() => setTab(id)}
-                className={`w-full flex items-center px-4 py-3 rounded-lg font-label-caps text-label-caps uppercase transition-all border-l-2
-                  ${tab === id
-                    ? "text-gray-900 border-gray-900 bg-gray-100"
-                    : "text-gray-500 border-transparent hover:bg-gray-50 hover:text-gray-900"}`}>
-                <Icon size={16} className="mr-4 shrink-0" />
-                <span className="flex-1 text-left">{label}</span>
-                {badge > 0 && <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-[10px]">{badge}</span>}
-              </button>
-            </li>
-          ))}
-        </ul>
-        <div className="px-6 mt-auto mb-4">
-          <div className="border-t border-gray-200 pt-4">
-            <button onClick={() => setSuapModal(true)}
-              className="w-full text-left font-label-caps text-label-caps text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors py-2 px-3 rounded flex items-center gap-3">
-              <RefreshCw size={16} /> Sincronizar SUAP
-            </button>
-            <button onClick={() => setEditMode(e => !e)}
-              className={`w-full text-left font-label-caps text-label-caps py-2 px-3 rounded flex items-center gap-3 mt-1 transition-colors
-                ${editMode ? "text-gray-900 bg-gray-100" : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"}`}>
-              <Pencil size={16} /> {editMode ? "Concluir edição" : "Editar progresso"}
-            </button>
-            <button onClick={onLogout}
-              className="w-full text-left font-label-caps text-label-caps text-red-600 hover:bg-red-50 transition-colors py-2 px-3 rounded flex items-center gap-3 mt-1">
-              <LogOut size={16} /> Sair
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      <main className="flex-1 lg:ml-64 flex flex-col min-h-screen">
-        <header className="bg-white border-b border-gray-200 flex justify-between items-center w-full px-4 lg:px-margin h-16 sticky top-0 z-30">
-          <div className="flex items-center gap-2 text-gray-500">
-            <User size={14} />
-            <span className="font-code text-code font-bold text-gray-900">{displayName}</span>
-          </div>
-          <div className="flex items-center gap-2 lg:hidden">
-            <button onClick={() => setSuapModal(true)}
-              className="font-body-md text-body-md text-gray-500 hover:bg-gray-50 transition-colors px-3 py-1.5 rounded-lg">
-              <RefreshCw size={14} />
-            </button>
-            <button onClick={onLogout}
-              className="font-body-md text-body-md text-gray-900 font-bold hover:bg-gray-50 transition-colors px-3 py-1.5 rounded-lg">
-              Sair
-            </button>
-          </div>
-        </header>
-
-        <div className="max-w-container-max mx-auto w-full px-4 lg:px-margin py-6 lg:py-8 pb-28 lg:pb-10 flex-1">
-          <div className="space-y-6">
-            {tab === "overview" && (
-            <>
-            <section className="flex items-end justify-between border-b border-gray-200 pb-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <GraduationCap size={14} className="text-gray-400" />
-                  <span className="font-label-caps text-label-caps text-gray-500 tracking-widest uppercase">Engenharia de Computação · IFMT</span>
-                </div>
-                <h1 className="font-headline-md text-headline-md text-gray-900">Dashboard Acadêmico</h1>
-                <p className="text-sm text-gray-500">Fluxo curricular · 2026/1</p>
-              </div>
-              <div className="text-right shrink-0 ml-4">
-                <div className="text-3xl font-black text-gray-900 leading-none">{stats.pct}%</div>
-                <div className="font-label-caps text-label-caps text-gray-500 uppercase mt-1">Concluído</div>
-              </div>
-            </section>
-
-            <section>
-              <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-900">Progresso Total do Curso</h3>
-                  <span className="text-xs text-gray-500">{stats.done} de {stats.total} disciplinas</span>
-                </div>
-                <ProgressBar value={stats.pct} colorClass="bg-gray-900" />
-                <div className="mt-4 grid grid-cols-4 gap-3 divide-x divide-gray-200">
-                  {[
-                    { v: stats.done,    l: "Concluídas" },
-                    { v: stats.current, l: "Cursando" },
-                    { v: subjects.filter(s=>s.status==="next").length,   l: "Próximas" },
-                    { v: subjects.filter(s=>s.status==="future").length, l: "Futuras" },
-                  ].map(({ v, l }) => (
-                    <div key={l} className="text-center first:pl-0">
-                      <p className="text-2xl font-bold text-gray-900 leading-none">{v}</p>
-                      <p className="text-xs text-gray-500 mt-1">{l}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            <details className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-              <summary className="p-4 flex items-center gap-2 cursor-pointer select-none hover:bg-gray-50 transition-colors">
-                <CheckCircle2 size={14} className="text-gray-400" />
-                <span className="text-sm font-semibold text-gray-900">Disciplinas Concluídas</span>
-                <span className="ml-auto text-xs text-gray-400">{doneSubs.length} disciplinas · expandir</span>
-              </summary>
-              <div className="px-4 pb-4 pt-1 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1.5">
-                {doneSubs.map(s => (
-                  <div key={s.id} className="flex items-center gap-1.5 text-xs text-gray-500">
-                    <CheckCircle2 size={10} className="text-gray-400 shrink-0" />
-                    <span className="truncate">{s.name}</span>
-                  </div>
-                ))}
-              </div>
-            </details>
-            </>
-            )}
-
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-              <div className="flex border-b border-gray-200 overflow-x-auto">
-                {TABS.map(({ id, label, icon: Icon, badge }) => (
-                  <button key={id} onClick={() => setTab(id)}
-                    className={`relative flex items-center gap-2 px-4 py-3.5 text-sm font-medium transition-all border-b-2 whitespace-nowrap
-                      ${tab === id ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50"}`}>
-                    <Icon size={14} />
-                    {label}
-                    {badge > 0 && (
-                      <span className="w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center leading-none">{badge}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-              <div className="p-5">
-                {tab === "overview" && <OverviewTab subjects={subjects} editMode={editMode} onCycleStatus={cycleStatus} />}
-                {tab === "schedule" && <ScheduleTab />}
-                {tab === "absence"  && <AbsenceTab subjects={subjects} faltas={faltas} setFaltas={setFaltas} notas={notas} onOpenSuap={() => setSuapModal(true)} />}
-                {tab === "flow"     && <FlowTab subjects={subjects} />}
-              </div>
-            </div>
-
-            <p className="text-center text-xs text-gray-400 pb-4 font-label-caps text-label-caps uppercase">GIDEON Academic · ENC 2026/1</p>
-          </div>
-        </div>
+    <div className="min-h-screen bg-[#F2F1F6] flex flex-col max-w-[430px] mx-auto relative">
+      <main className="flex-1 overflow-y-auto pb-20">
+        {tab === "geral"   && <TabGeral subjects={subjects} stats={stats} doneSubs={doneSubs} />}
+        {tab === "horario" && <TabHorario />}
+        {tab === "notas"   && <TabNotas subjects={subjects} faltas={faltas} setFaltas={setFaltas} notas={notas} onOpenSuap={() => setSuapModal(true)} />}
+        {tab === "mais" && mais === null && (
+          <TabMais displayName={displayName}
+            onOpenSuap={() => setSuapModal(true)}
+            onOpenFluxo={() => setMais("fluxo")}
+            onOpenEditar={() => setMais("editar")}
+            onOpenSobre={() => setSobreModal(true)}
+            onLogout={onLogout} />
+        )}
+        {tab === "mais" && mais === "fluxo"  && <FluxoScreen subjects={subjects} onBack={() => setMais(null)} />}
+        {tab === "mais" && mais === "editar" && <EditarScreen subjects={subjects} onCycleStatus={cycleStatus} onBack={() => setMais(null)} />}
       </main>
 
-      <nav className="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-4 pt-2 bg-white border-t border-gray-200 shadow-lg rounded-t-xl">
-        {TABS.map(({ id, label, icon: Icon, badge }) => (
-          <button key={id} onClick={() => setTab(id)}
-            className={`relative flex flex-col items-center justify-center pt-2 transition-all
-              ${tab === id ? "text-gray-900 border-t-2 border-gray-900" : "text-gray-500"}`}>
-            <Icon size={18} className="mb-1" />
-            <span className={`font-label-caps text-[10px] uppercase tracking-wider ${tab === id ? "font-bold" : ""}`}>
-              {label}
-            </span>
-            {badge > 0 && tab !== id && (
-              <span className="absolute -top-0.5 right-1 w-2 h-2 bg-red-500 rounded-full" />
-            )}
-          </button>
-        ))}
+      {/* BOTTOM NAV */}
+      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-gray-200 z-50">
+        <div className="flex">
+          {NAV.map(item => {
+            const active = tab === item.id;
+            return (
+              <button key={item.id} onClick={() => goTab(item.id)}
+                className="flex-1 flex flex-col items-center py-2 pt-3 gap-0.5 relative">
+                <span className="relative">
+                  <item.icon size={22} className={active ? "text-violet-600" : "text-gray-400"} />
+                  {item.badge && <span className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-[#FF3B30]" />}
+                </span>
+                <span className={`text-[10px] font-medium ${active ? "text-violet-600" : "text-gray-400"}`}>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </nav>
 
       {suapModal && (
-        <SuapModal
-          onSync={sincronizarSUAP}
+        <SuapSheet onSync={sincronizarSUAP}
           onClose={() => { setSuapModal(false); setSuapError(""); }}
-          loading={suapLoading}
-          error={suapError}
-        />
+          loading={suapLoading} error={suapError} />
       )}
+      {sobreModal && <SobreSheet onClose={() => setSobreModal(false)} />}
     </div>
   );
 }
@@ -902,9 +953,7 @@ export default function AcademicDashboard() {
   const [userKey, setUserKey] = useState(() => getSession());
 
   if (!userKey) {
-    return (
-      <AuthScreen onAuthenticated={(key) => { setSession(key); setUserKey(key); }} />
-    );
+    return <AuthScreen onAuthenticated={(key) => { setSession(key); setUserKey(key); }} />;
   }
 
   return (
