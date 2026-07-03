@@ -8,6 +8,7 @@ import {
 import AuthScreen from "./AuthScreen";
 import { getSession, setSession, getDisplayName } from "./auth";
 import { loadUserData, saveUserData } from "./userData";
+import { encryptSenha } from "./cryptoSuap";
 import {
   requestNotificationPermission, getNotificationPermission,
   scheduleClassReminders, checkAttendanceAlerts,
@@ -923,10 +924,12 @@ function Dashboard({ userKey, displayName, onLogout }) {
     setSuapLoading(true);
     setSuapError("");
     try {
+      // Cifra a senha no dispositivo (RSA-OAEP): ela nunca sai em texto claro.
+      const senha_enc = await encryptSenha(senha);
       const resp = await fetch(WORKER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matricula, senha }),
+        body: JSON.stringify({ matricula, senha_enc }),
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.erro || "Erro desconhecido");
