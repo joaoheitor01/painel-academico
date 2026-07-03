@@ -28,30 +28,10 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
+        // Tailwind agora é compilado no build (CSS local) — todos os assets ficam
+        // no precache, então o app funciona offline já na primeira instalação.
+        globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
         navigateFallback: "index.html",
-        runtimeCaching: [
-          {
-            // Tailwind via CDN — mantém o app estilizado offline após a 1ª visita
-            urlPattern: ({ url }) => url.origin === "https://cdn.tailwindcss.com",
-            handler: "StaleWhileRevalidate",
-            options: { cacheName: "tailwind-cdn" },
-          },
-          {
-            urlPattern: ({ url }) => url.origin === "https://fonts.googleapis.com",
-            handler: "StaleWhileRevalidate",
-            options: { cacheName: "google-fonts-stylesheets" },
-          },
-          {
-            urlPattern: ({ url }) => url.origin === "https://fonts.gstatic.com",
-            handler: "CacheFirst",
-            options: {
-              cacheName: "google-fonts-webfonts",
-              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
       },
     }),
   ],
