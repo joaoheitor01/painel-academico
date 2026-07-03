@@ -36,43 +36,39 @@ export default function AuthScreen({ onAuthenticated }) {
   }
 
   const inputClass =
-    "w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-3 py-2.5 " +
-    "font-body-md text-body-md text-gray-900 placeholder-gray-400 " +
-    "focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all";
-
-  const tabClass = (active) =>
-    `flex-1 py-3.5 text-center font-label-caps text-label-caps uppercase transition-colors border-b-2 ${
-      active ? "text-primary border-primary" : "text-gray-500 border-transparent hover:text-gray-900"
-    }`;
+    "w-full bg-[#F2F1F6] border border-transparent rounded-xl pl-9 pr-3 py-3 " +
+    "text-sm text-[#1C1C1E] placeholder-gray-400 " +
+    "focus:outline-none focus:ring-2 focus:ring-violet-200 transition-all";
 
   return (
-    <div className="min-h-screen bg-background text-on-background flex items-center justify-center p-4 antialiased">
+    <div className="min-h-screen bg-[#F2F1F6] flex items-center justify-center p-4 antialiased">
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="flex flex-col items-center gap-2 mb-6">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 border border-gray-200 mb-1">
-            <GraduationCap size={26} className="text-gray-700" />
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white shadow-sm p-3 mb-1">
+            <GraduationCap size={28} className="text-violet-600" />
           </div>
-          <h1 className="font-headline-md text-headline-md text-gray-900 text-center">Dashboard Acadêmico</h1>
-          <p className="font-body-md text-body-md text-gray-500 text-center">Engenharia de Computação · IFMT</p>
+          <h1 className="text-[22px] font-bold text-[#1C1C1E] text-center">Dashboard Acadêmico</h1>
+          <p className="text-sm text-[#6D6D72] text-center">Engenharia de Computação · IFMT</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-          {/* Tabs */}
-          <div className="flex border-b border-gray-200">
-            <button type="button" onClick={() => switchMode("login")} className={tabClass(mode === "login")}>
-              Entrar
-            </button>
-            <button type="button" onClick={() => switchMode("register")} className={tabClass(mode === "register")}>
-              Criar conta
-            </button>
+        <div className="bg-white rounded-2xl shadow-sm p-5">
+          {/* Segmented control (iOS) */}
+          <div className="bg-gray-100 rounded-2xl p-1 flex mb-5">
+            {[["login", "Entrar"], ["register", "Criar conta"]].map(([k, label]) => (
+              <button key={k} type="button" onClick={() => switchMode(k)}
+                className={`flex-1 py-2 text-sm font-medium rounded-xl transition-colors ${
+                  mode === k ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
+                {label}
+              </button>
+            ))}
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block font-label-caps text-label-caps text-gray-700 mb-2">Usuário</label>
+              <label className="block text-sm font-medium text-[#1C1C1E] mb-1.5">Usuário</label>
               <div className="relative">
                 <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input value={username} onChange={(e) => setUsername(e.target.value)} required
@@ -81,7 +77,7 @@ export default function AuthScreen({ onAuthenticated }) {
             </div>
 
             <div>
-              <label className="block font-label-caps text-label-caps text-gray-700 mb-2">Senha</label>
+              <label className="block text-sm font-medium text-[#1C1C1E] mb-1.5">Senha</label>
               <div className="relative">
                 <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
@@ -92,7 +88,7 @@ export default function AuthScreen({ onAuthenticated }) {
 
             {mode === "register" && (
               <div>
-                <label className="block font-label-caps text-label-caps text-gray-700 mb-2">Confirmar senha</label>
+                <label className="block text-sm font-medium text-[#1C1C1E] mb-1.5">Confirmar senha</label>
                 <div className="relative">
                   <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required
@@ -102,15 +98,15 @@ export default function AuthScreen({ onAuthenticated }) {
             )}
 
             {error && (
-              <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
-                <AlertCircle size={15} className="text-red-600 shrink-0" />
-                <span className="font-body-md text-body-md text-red-700 leading-tight">{error}</span>
+              <div className="flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2.5">
+                <AlertCircle size={15} className="text-[#FF3B30] shrink-0" />
+                <span className="text-sm text-[#FF3B30] leading-tight">{error}</span>
               </div>
             )}
 
             <button type="submit" disabled={loading}
-              className="w-full mt-2 flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 disabled:opacity-50
-                text-on-primary font-label-caps text-label-caps uppercase py-3 rounded-xl transition-all">
+              className="w-full mt-2 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50
+                text-white text-sm font-semibold py-3.5 rounded-xl transition-all">
               {mode === "login" ? <LogIn size={15} /> : <UserPlus size={15} />}
               {loading ? "Aguarde..." : mode === "login" ? "Entrar" : "Criar conta"}
               {!loading && <ArrowRight size={15} />}
@@ -118,7 +114,7 @@ export default function AuthScreen({ onAuthenticated }) {
           </form>
         </div>
 
-        <p className="text-center font-body-md text-body-md text-gray-500 mt-6 px-2">
+        <p className="text-center text-sm text-[#6D6D72] mt-6 px-2">
           Seus dados ficam salvos apenas neste navegador. Cada colega tem sua própria
           conta, com progresso e faltas isolados dos demais.
         </p>
