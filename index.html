@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Dashboard Acadêmico</title>
     <meta name="description" content="Fluxo curricular, horário, frequência e notas — Engenharia de Computação · IFMT" />
+    <!-- CSP: só scripts/estilos próprios; rede apenas para o Worker de sync.
+         Impede que um script injetado exfiltre o localStorage para fora. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://suap-sync.painel-academico-2026.workers.dev; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
     <meta name="theme-color" content="#7C3AED" />
     <!-- iOS: instalar como app em tela cheia -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
