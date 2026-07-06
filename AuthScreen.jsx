@@ -7,6 +7,7 @@ export default function AuthScreen({ onAuthenticated }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -23,9 +24,9 @@ export default function AuthScreen({ onAuthenticated }) {
       let userKey;
       if (mode === "register") {
         if (password !== confirm) throw new Error("As senhas não coincidem.");
-        userKey = await registerUser(username, password);
+        userKey = await registerUser(username, password, remember);
       } else {
-        userKey = await loginUser(username, password);
+        userKey = await loginUser(username, password, remember);
       }
       onAuthenticated(userKey);
     } catch (err) {
@@ -96,6 +97,15 @@ export default function AuthScreen({ onAuthenticated }) {
                 </div>
               </div>
             )}
+
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-violet-600" />
+              <span>
+                <span className="block text-sm text-[#1C1C1E]">Manter conectado</span>
+                <span className="block text-xs text-[#6D6D72]">Desmarque em computadores compartilhados — seus dados ficam selados ao fechar o app.</span>
+              </span>
+            </label>
 
             {error && (
               <div className="flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2.5">

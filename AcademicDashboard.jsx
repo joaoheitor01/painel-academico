@@ -871,16 +871,26 @@ function Dashboard({ userKey, displayName, onLogout }) {
 
   useEffect(() => {
     setHydratedFor(null);
-    const data = loadUserData(userKey);
-    setFaltas(data.faltas);
-    setStatusOverrides(data.statusOverrides);
-    setNotas(data.notas);
-    setHydratedFor(userKey);
+    let cancelled = false;
+    // Dados agora ficam cifrados no localStorage; a decifragem é assíncrona.
+    loadUserData(userKey)
+      .then((data) => {
+        if (cancelled) return;
+        setFaltas(data.faltas);
+        setStatusOverrides(data.statusOverrides);
+        setNotas(data.notas);
+        setHydratedFor(userKey);
+      })
+      .catch(() => {
+        // Sem chave de sessão (ex.: storage inconsistente) → exige novo login.
+        if (!cancelled) onLogout();
+      });
+    return () => { cancelled = true; };
   }, [userKey]);
 
   useEffect(() => {
     if (hydratedFor !== userKey) return;
-    saveUserData(userKey, { faltas, statusOverrides, notas });
+    void saveUserData(userKey, { faltas, statusOverrides, notas });
   }, [hydratedFor, userKey, faltas, statusOverrides, notas]);
 
   // Reagenda lembretes de aula e reavalia alertas de falta ao carregar/mudar faltas.
