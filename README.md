@@ -22,8 +22,34 @@ própria conta local:
   Isso significa que os dados ficam restritos ao dispositivo/navegador usado
   e podem ser perdidos se o `localStorage` for limpo.
 - `curriculumData.js` contém a grade curricular compartilhada (disciplinas,
-  pré-requisitos, horário, controle de frequência). Cada usuário pode marcar
-  seu próprio progresso (Concluída / Cursando / Próxima / Futura) através do
-  botão **"Editar progresso"**, sem afetar os dados de outros colegas.
+  pré-requisitos) e as funções puras que montam o horário. Cada usuário pode
+  marcar seu próprio progresso (Concluída / Cursando / Próxima / Futura)
+  através do botão **"Editar progresso"**, sem afetar os dados de outros
+  colegas.
+
+## Sincronização com o SUAP
+
+`worker/suap-sync.js` é um Cloudflare Worker stateless que faz login no SUAP
+com as credenciais do aluno e devolve quatro campos: `faltas`,
+`statusOverrides`, `notas` e `horario`.
+
+- **Notas e faltas** vêm da aba `?tab=boletim`, varrida de todos os períodos
+  letivos (do mais novo para o mais antigo, `first-write-wins`).
+- **Horário e carga horária** vêm da aba `?tab=locais_aula_aluno` — por aluno.
+  `buildSchedule()` e `buildAttendanceMeta()` convertem os códigos do SUAP
+  (`2V34 / 3V12`) em blocos com horário e intervalos. O `SCHEDULE` estático em
+  `curriculumData.js` só é usado como fallback para contas que ainda não
+  sincronizaram.
+- O componente é casado primeiro pelo **código estável** (`Normal.7433`) e só
+  depois pelo nome, que varia entre semestres.
+
+Deploy do Worker: `cd worker && wrangler deploy`. Sem redeploy, o próximo sync
+sobrescreve o `localStorage` com o parsing antigo.
+
+## Testes
+
+`npm test` (runner nativo do Node, sem dependência extra). Os fixtures em
+`test/fixtures/` são páginas reais do SUAP; cobrem o mapeamento nome/código →
+ID, o parsing do boletim e a montagem do horário.
 - `AuthScreen.jsx` é a tela de login/criação de conta exibida antes de acessar
   o painel.

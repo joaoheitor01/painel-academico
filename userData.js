@@ -19,6 +19,9 @@ const DEFAULT_USER_DATA = {
   faltas: {},
   statusOverrides: {},
   notas: {},
+  // Horário do período atual, lido do SUAP por aluno (ver worker/suap-sync.js).
+  // Vazio = conta ainda não sincronizou → a UI cai no SCHEDULE estático.
+  horario: [],
 };
 
 function withDefaults(parsed) {
@@ -26,6 +29,7 @@ function withDefaults(parsed) {
     faltas: parsed?.faltas || {},
     statusOverrides: parsed?.statusOverrides || {},
     notas: parsed?.notas || {},
+    horario: Array.isArray(parsed?.horario) ? parsed.horario : [],
   };
 }
 

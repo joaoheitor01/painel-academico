@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  // curriculumData.js contém classes (SUBJECT_COLORS, STATUS) — precisa estar aqui
+  // curriculumData.js contém classes (SUBJECT_PALETTE, STATUS) — precisa estar aqui
   // ou o purge remove as cores das disciplinas/status.
   content: [
     "./index.html",

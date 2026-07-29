@@ -12,6 +12,14 @@
 // FIX 3 · "Reprovado": antes o Worker não escrevia nada, então uma disciplina
 //         reprovada continuava eternamente como "Cursando" no localStorage.
 //         Agora grava "next" (precisa refazer) e zera as faltas.
+//
+// ── HORÁRIO POR ALUNO ──────────────────────────────────────────────────────
+// STEP E lê ?tab=locais_aula_aluno e devolve `horario` (diário, código,
+// professor, carga horária e blocos de aula). Antes disso SCHEDULE e
+// ATTENDANCE_META eram constantes no repo: todo semestre alguém editava na
+// mão e, pior, todo colega via o horário de quem editou. O match passa a
+// tentar primeiro o código estável do componente (CODIGO_PARA_ID) e só depois
+// o nome. Falha ao ler o horário não derruba o sync de notas.
 
 const ALLOWED_ORIGIN = "https://joaoheitor01.github.io";
 const SUAP_BASE = "https://suap.ifmt.edu.br";
@@ -123,6 +131,38 @@ const NOME_PARA_ID_RAW = {
   "homem, cultura e sociedade": "ENC-56",                         // FIX 1
 };
 
+// ─── Mapeamento código (SUAP) → ID (painel) ────────────────────────────────
+// O prefixo "Normal.XXXX" é o código estável do componente no SUAP — bem mais
+// confiável que o nome, que varia ("Eletrônica I" vs "Eletrônica Analógica I",
+// "Análise e Proj." vs "Análise e Projeto").
+//
+// ⚠ Mapa PARCIAL, derivado do histórico de um único aluno. Vários códigos que
+// existem no SUAP (Normal.3021 Microcontroladores, Normal.7435 Controle de
+// Sistemas…) nem constam da matriz do painel. O match por nome continua sendo
+// o fallback — não remova.
+const CODIGO_PARA_ID = {
+  "Normal.1387":"ENC-01", "Normal.7420":"ENC-02", "Normal.7418":"ENC-03",
+  "Normal.7419":"ENC-04", "Normal.2998":"ENC-05", "Normal.0593":"ENC-06",
+  "Normal.1391":"ENC-07", "Normal.2996":"ENC-16", "Normal.1712":"ENC-18",
+  "Normal.1362":"ENC-19", "Normal.1358":"ENC-20", "Normal.6179":"ENC-21",
+  "Normal.1654":"ENC-22", "Normal.1294":"ENC-24", "Normal.4589":"ENC-27",
+  "Normal.7429":"ENC-29", "Normal.2185":"ENC-30", "Normal.7430":"ENC-32",
+  "Normal.7431":"ENC-33", "Normal.1455":"ENC-34", "Normal.4579":"ENC-35",
+  "Normal.7428":"ENC-36", "Normal.7433":"ENC-37", "Normal.3009":"ENC-39",
+  "Normal.7432":"ENC-40", "Normal.2095":"ENC-40", // Eletrônica I ≡ Analógica I
+  "Normal.4587":"ENC-41", "Normal.1367":"ENC-42", "Normal.1465":"ENC-43",
+  "Normal.7434":"ENC-45", "Normal.7427":"ENC-17", "Normal.3010":"ENC-55",
+  "Normal.0935":"ENC-56",
+};
+
+// "Normal.7433 - Análise e Projeto…" → "Normal.7433" (null se não houver código)
+export function extrairCodigo(textoBruto) {
+  const i = (textoBruto || "").indexOf(" - ");
+  if (i === -1) return null;
+  const cod = textoBruto.slice(0, i).trim();
+  return /^[A-Za-z]+\.\d+$/.test(cod) ? cod : null;
+}
+
 const DIACRITIC_MIN = 0x0300;
 const DIACRITIC_MAX = 0x036f;
 
@@ -162,7 +202,10 @@ export function matchComLimite(texto, chave) {
   }
 }
 
-export function encontrarId(nomeSuap) {
+export function encontrarId(nomeSuap, codigo = null) {
+  // 0. Código do componente — estável, imune a variação de nome.
+  if (codigo && CODIGO_PARA_ID[codigo]) return CODIGO_PARA_ID[codigo];
+
   const normalizado = normalizar(nomeSuap);
   // 1. Lookup exato
   if (NOME_PARA_ID[normalizado]) return NOME_PARA_ID[normalizado];
@@ -227,7 +270,7 @@ export function parseBoletimPagina(html, faltas, statusOverrides, notas, isPerio
       : nomeBruto.trim();
     if (!nome) continue;
 
-    const encId = encontrarId(nome);
+    const encId = encontrarId(nome, extrairCodigo(nomeBruto));
     if (!encId) continue;
     if (encId in statusOverrides) continue; // first-write-wins
 
@@ -267,6 +310,112 @@ export function parseBoletimPagina(html, faltas, statusOverrides, notas, isPerio
     }
     // cancelado / trancado / desconhecido → não altera
   }
+}
+
+// ─── Parsing do horário (?tab=locais_aula_aluno) ───────────────────────────
+// A tabela "Diários" traz uma linha por disciplina:
+//   61479 | Normal.7433 - Análise e Projeto… - Graduação [68 h/80 Aulas]
+//         | Evandro Cesar Freiberger | 2V34 / 3V12
+//
+// O parser identifica as colunas por FORMATO, não por posição — o SUAP muda a
+// ordem/quantidade de colunas entre versões (às vezes há coluna de sala).
+
+// Um bloco: <dia><turno><aulas> — ex.: 2V34, 4V1234, 5N2456.
+const RE_BLOCO = /^([2-7])([MVN])(\d+)$/;
+// "[68 h/80 Aulas]" → queremos o nº de AULAS (80), não as horas (68).
+const RE_CARGA = /\[\s*\d+\s*h\s*\/\s*(\d+)\s*aulas?\s*\]/i;
+
+/** "2V34 / 3V12" → [{dia:2,turno:"V",slots:[3,4]}, {dia:3,turno:"V",slots:[1,2]}] */
+export function parseCodigoHorario(texto) {
+  const blocos = [];
+  for (const parte of (texto || "").split("/")) {
+    const m = parte.trim().match(RE_BLOCO);
+    if (!m) continue;
+    const slots = m[3].split("").map(Number).filter((n) => n >= 1 && n <= 6);
+    if (slots.length) {
+      blocos.push({ dia: Number(m[1]), turno: m[2], slots: [...new Set(slots)].sort((a, b) => a - b) });
+    }
+  }
+  return blocos;
+}
+
+/** Uma célula é horário se TODOS os seus pedaços casam com o formato de bloco. */
+function pareceHorario(txt) {
+  const partes = (txt || "").split("/").map((p) => p.trim()).filter(Boolean);
+  return partes.length > 0 && partes.every((p) => RE_BLOCO.test(p));
+}
+
+/**
+ * "Normal.7433 - Análise e Projeto… - Graduação [68 h/80 Aulas]"
+ *   → { codigo, nome, cargaHoraria }
+ */
+function parseComponente(txt) {
+  const codigo = extrairCodigo(txt);
+  if (!codigo) return null;
+  const resto = txt.slice(txt.indexOf(" - ") + 3);
+  const cargaHoraria = Number(resto.match(RE_CARGA)?.[1] || 0);
+  // Tira o "[68 h/80 Aulas]" e o sufixo de modalidade (" - Graduação").
+  const nome = resto.replace(/\[[^\]]*\]/g, "").split(" - ")[0].replace(/\s+/g, " ").trim();
+  if (!nome) return null;
+  return { codigo, nome, cargaHoraria };
+}
+
+export function parseHorarioPagina(html) {
+  const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  const stripTagsRegex = /<[^>]+>/g;
+  const horario = [];
+  const vistos = new Set();
+
+  let rowMatch;
+  while ((rowMatch = rowRegex.exec(html)) !== null) {
+    const cellRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+    const cells = [];
+    let cellMatch;
+    while ((cellMatch = cellRegex.exec(rowMatch[1])) !== null) {
+      cells.push(cellMatch[1].replace(stripTagsRegex, "").replace(/\s+/g, " ").trim());
+    }
+    if (cells.length < 2) continue;
+
+    const idxComp = cells.findIndex((c) => extrairCodigo(c));
+    if (idxComp === -1) continue;
+    const comp = parseComponente(cells[idxComp]);
+    if (!comp) continue;
+
+    const encId = encontrarId(comp.nome, comp.codigo);
+    if (!encId) continue; // componente fora da matriz do painel
+
+    const idxHorario = cells.findIndex((c, i) => i !== idxComp && pareceHorario(c));
+    const blocos = idxHorario === -1 ? [] : parseCodigoHorario(cells[idxHorario]);
+
+    // Diário: primeira célula puramente numérica antes do componente.
+    const diario = cells.slice(0, idxComp).find((c) => /^\d+$/.test(c)) || "";
+
+    // Professor: célula de texto imediatamente ANTES do horário. Ancorar na
+    // posição evita pegar a coluna de sala ("Bloco C"), que também é texto.
+    const textuais = cells
+      .map((c, i) => ({ c, i }))
+      .filter(({ c, i }) => i !== idxComp && i !== idxHorario && !pareceHorario(c) && /[A-Za-zÀ-ÿ]{3,}/.test(c));
+    const professor =
+      textuais.find(({ i }) => i === idxHorario - 1)?.c ||
+      textuais.find(({ i }) => i > idxComp)?.c ||
+      "";
+
+    const chave = `${comp.codigo}|${diario}`;
+    if (vistos.has(chave)) continue;
+    vistos.add(chave);
+
+    horario.push({
+      diario,
+      codigo: comp.codigo,
+      encId,
+      nome: comp.nome,
+      professor,
+      cargaHoraria: comp.cargaHoraria,
+      blocos,
+    });
+  }
+
+  return horario;
 }
 
 // ─── Cookie jar ─────────────────────────────────────────────────────────────
@@ -399,7 +548,19 @@ export default {
         }
       }
 
-      return respJson(200, { faltas, statusOverrides, notas });
+      // STEP E — horário e carga horária do período atual, por aluno.
+      // Falhar aqui NÃO pode derrubar o sync de notas: no pior caso o painel
+      // segue com o SCHEDULE estático de fallback.
+      let horario = [];
+      try {
+        const urlHorario = `${SUAP_BASE}/edu/aluno/${encodeURIComponent(matricula)}/?tab=locais_aula_aluno`;
+        const respHorario = await fetch(urlHorario, { headers: headersBoletim });
+        if (respHorario.ok) horario = parseHorarioPagina(await respHorario.text());
+      } catch {
+        horario = [];
+      }
+
+      return respJson(200, { faltas, statusOverrides, notas, horario });
     } catch (err) {
       return respJson(500, { erro: "erro inesperado ao sincronizar com o SUAP" });
     }
