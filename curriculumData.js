@@ -164,28 +164,45 @@ function slotStart(turno, slot) {
   return t ? toMin(t[0], t[1]) : null;
 }
 
-/** Um bloco do SUAP (ex.: 5N2456) → um bloco da UI, com intervalos internos. */
+/**
+ * Um bloco → um bloco da UI, com os intervalos internos.
+ *
+ * Duas entradas possíveis:
+ *  · `periodos: [[inicio, fim], …]` — horário de relógio, vindo da grade
+ *    oficial do EduPage (fonte primária: são os sinos de verdade).
+ *  · `turno` + `slots` — código do SUAP (2V34), convertido por SLOT_TIMES.
+ *    Só entra em cena se o EduPage estiver fora do ar.
+ */
 function blocoParaBlock(encId, nome, bloco) {
-  const slots = [...new Set(bloco?.slots || [])];
-  const times = slots
-    .map((s) => slotStart(bloco.turno, s))
-    .filter((t) => t !== null)
-    .sort((a, b) => a - b);
-  if (times.length === 0) return null;
+  let spans;
+
+  if (Array.isArray(bloco?.periodos) && bloco.periodos.length) {
+    spans = bloco.periodos
+      .filter((p) => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite))
+      .map(([inicio, fim]) => [inicio, fim]);
+  } else {
+    spans = [...new Set(bloco?.slots || [])]
+      .map((s) => slotStart(bloco.turno, s))
+      .filter((t) => t !== null)
+      .map((t) => [t, t + AULA_MIN]);
+  }
+
+  if (!spans || spans.length === 0) return null;
+  spans.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
 
   const intervals = [];
-  for (let i = 1; i < times.length; i++) {
-    const start = times[i - 1] + AULA_MIN;
-    const end = times[i];
+  for (let i = 1; i < spans.length; i++) {
+    const start = spans[i - 1][1];
+    const end = spans[i][0];
     if (end - start >= INTERVALO_MIN) intervals.push({ start, end });
   }
 
   return {
     id: encId,
     name: shortNameOf(encId, nome),
-    start: times[0],
-    end: times[times.length - 1] + AULA_MIN,
-    aulas: times.length,
+    start: spans[0][0],
+    end: Math.max(...spans.map((s) => s[1])),
+    aulas: spans.length,
     intervals,
   };
 }
@@ -253,7 +270,9 @@ export function buildAttendanceMeta(horario) {
 
     const aulasNoDia = new Map();
     for (const b of d.blocos) {
-      const n = new Set(b?.slots || []).size;
+      const n = Array.isArray(b?.periodos) && b.periodos.length
+        ? b.periodos.length
+        : new Set(b?.slots || []).size;
       if (n) aulasNoDia.set(b.dia, (aulasNoDia.get(b.dia) || 0) + n);
     }
 
@@ -271,7 +290,6 @@ export function buildAttendanceMeta(horario) {
 // sync, buildSchedule/buildAttendanceMeta assumem — e cada aluno vê o SEU
 // horário, não o de quem editou o repo por último.
 export const ATTENDANCE_META = {
-  "ENC-37": { cargaHoraria: 80, aulasPorDia: 2, shortName: "Análise e Projeto" },
   "ENC-55": { cargaHoraria: 40, aulasPorDia: 2, shortName: "Lab. Circuitos II" },
   "ENC-42": { cargaHoraria: 80, aulasPorDia: 2, shortName: "Redes de Computadores" },
   "ENC-39": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Circuitos Elétricos II" },
@@ -279,44 +297,44 @@ export const ATTENDANCE_META = {
   "ENC-56": { cargaHoraria: 40, aulasPorDia: 2, shortName: "Homem, Cultura e Sociedade" },
 };
 
-// Horário 2026/2 — códigos SUAP dos diários entre colchetes.
+// Horário 2026/2 da turma DCOM 7844.6, conferido contra a grade oficial do
+// campus (EduPage, HORARIO_2026_2_Campus.Cuiaba_29.07.2026).
+//
+// ⚠ Não derive estes horários dos códigos do SUAP ("3V56"): a grade de sinos
+// que circula erra feio no vespertino. Redes na quinta é 15:35, não 16:55.
+// Análise e Projeto não consta: o IFMT não publicou o horário dela.
 export const SCHEDULE = [
   {
     day: "Segunda", dayShort: "SEG",
     blocks: [
-      // [2V12] Lab. de Circuitos Elétricos II — Paulo Henrique Correa de Morais
-      { id: "ENC-55", name: "Lab. Circuitos II",   start: toMin(13,0),  end: toMin(14,45), aulas: 2 },
-      // [2V34] Análise e Projeto de Sistemas Computacionais — Evandro Cesar Freiberger
-      { id: "ENC-37", name: "Análise e Projeto",   start: toMin(14,50), end: toMin(16,50), aulas: 2,
-        intervals: [{ start: toMin(15,40), end: toMin(16,0) }] },
-      // [2N34] Homem, Cultura e Sociedade — Sandro Aparecido Lima dos Santos
-      { id: "ENC-56", name: "Homem, Cultura e Sociedade", start: toMin(18,55), end: toMin(20,30), aulas: 2 },
+      // Lab. de Circuitos Elétricos II — Paulo Morais
+      { id: "ENC-55", name: "Lab. Circuitos II", start: toMin(13,0), end: toMin(14,30), aulas: 2 },
+      // Homem, Cultura e Sociedade — Sandro Santos
+      { id: "ENC-56", name: "Homem, Cultura e Sociedade", start: toMin(18,50), end: toMin(20,30), aulas: 2 },
     ],
   },
   {
     day: "Terça", dayShort: "TER",
     blocks: [
-      // [3V12] Análise e Projeto de Sistemas Computacionais
-      { id: "ENC-37", name: "Análise e Projeto",   start: toMin(13,0),  end: toMin(14,45), aulas: 2 },
-      // [3V56] Redes de Computadores — Juliana Fonseca Antunes
-      { id: "ENC-42", name: "Redes de Computadores", start: toMin(16,55), end: toMin(18,40), aulas: 2 },
+      // Redes de Computadores — Juliana Antunes
+      { id: "ENC-42", name: "Redes de Computadores", start: toMin(16,20), end: toMin(17,50), aulas: 2 },
     ],
   },
   {
     day: "Quarta", dayShort: "QUA",
     blocks: [
-      // [4V1234] Circuitos Elétricos II — Ronan Marcelo Martins
-      { id: "ENC-39", name: "Circuitos Elétricos II", start: toMin(13,0), end: toMin(16,50), aulas: 4,
-        intervals: [{ start: toMin(15,40), end: toMin(16,0) }] },
+      // Circuitos Elétricos II — Ronan Martins
+      { id: "ENC-39", name: "Circuitos Elétricos II", start: toMin(13,0), end: toMin(16,20), aulas: 4,
+        intervals: [{ start: toMin(15,15), end: toMin(15,35) }] },
     ],
   },
   {
     day: "Quinta", dayShort: "QUI",
     blocks: [
-      // [5V56] Redes de Computadores
-      { id: "ENC-42", name: "Redes de Computadores", start: toMin(16,55), end: toMin(18,40), aulas: 2 },
-      // [5N2456] Eletrônica I (equivalente a Eletrônica Analógica I) — Alberto Willian Mascarenhas
-      { id: "ENC-40", name: "Eletrônica I",        start: toMin(18,50), end: toMin(22,25), aulas: 4,
+      // Redes de Computadores — Juliana Antunes
+      { id: "ENC-42", name: "Redes de Computadores", start: toMin(15,35), end: toMin(17,5), aulas: 2 },
+      // Eletrônica I (≡ Eletrônica Analógica I) — Alberto Mascarenhas
+      { id: "ENC-40", name: "Eletrônica I", start: toMin(18,50), end: toMin(22,25), aulas: 4,
         intervals: [{ start: toMin(20,30), end: toMin(20,45) }] },
     ],
   },
