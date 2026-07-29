@@ -112,7 +112,7 @@ function TabGeral({ subjects, stats, doneSubs }) {
                   <span className="text-[15px] font-bold text-[#1C1C1E] leading-snug flex-1">{s.name}</span>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 shrink-0">{s.id}</span>
                 </div>
-                <p className="text-xs text-[#6D6D72] mt-1 pl-4">Cursando · 2026/1</p>
+                <p className="text-xs text-[#6D6D72] mt-1 pl-4">Cursando · 2026/2</p>
                 {rf && (
                   <div className="mt-2 rounded-lg bg-red-50 text-[#FF3B30] text-xs px-3 py-1.5">
                     ⚠ Limite de faltas atingido
@@ -842,8 +842,8 @@ function SobreSheet({ onClose }) {
         <h2 className="text-[20px] font-bold text-[#1C1C1E] text-center">Dashboard Acadêmico</h2>
         <p className="text-sm text-[#6D6D72] text-center mt-1">Engenharia de Computação · IFMT</p>
         <div className="mt-4 flex flex-col gap-2 text-sm text-[#6D6D72]">
-          <div className="flex justify-between"><span>Versão</span><span className="text-[#1C1C1E] font-medium">2026.1</span></div>
-          <div className="flex justify-between"><span>Turma</span><span className="text-[#1C1C1E] font-medium">ENC 2026/1</span></div>
+          <div className="flex justify-between"><span>Versão</span><span className="text-[#1C1C1E] font-medium">2026.2</span></div>
+          <div className="flex justify-between"><span>Turma</span><span className="text-[#1C1C1E] font-medium">ENC 2026/2</span></div>
         </div>
         <p className="text-xs text-[#6D6D72] text-center mt-4">Feito por e para estudantes. Dados locais no seu navegador.</p>
         <button onClick={onClose}

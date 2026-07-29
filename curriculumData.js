@@ -48,6 +48,8 @@ export const DEFAULT_SUBJECTS = [
 
   { id: "ENC-37", name: "Análise e Proj. de Sistemas Computacionais", sem: 6, prereqs: ["ENC-34"] },
   { id: "ENC-38", name: "Extensão II",                               sem: 6,  prereqs: ["ENC-33"] },
+  // NOVO — componente do núcleo comum ofertado em 2026/2 (Normal.0935).
+  { id: "ENC-56", name: "Homem, Cultura e Sociedade",                sem: 6,  prereqs: [] },
 
   { id: "ENC-39", name: "Circuitos Elétricos II",                    sem: 7,  prereqs: ["ENC-35"] },
   { id: "ENC-40", name: "Eletrônica Analógica I",                    sem: 7,  prereqs: ["ENC-35"] },
@@ -55,6 +57,8 @@ export const DEFAULT_SUBJECTS = [
   { id: "ENC-42", name: "Redes de Computadores",                     sem: 7,  prereqs: ["ENC-36"] },
   { id: "ENC-43", name: "Inteligência Artificial",                   sem: 7,  prereqs: ["ENC-14","ENC-10"] },
   { id: "ENC-44", name: "Extensão III",                              sem: 7,  prereqs: ["ENC-38"] },
+  // NOVO — faltava na matriz; SUAP oferta junto de Circuitos Elétricos II (Normal.3010).
+  { id: "ENC-55", name: "Laboratório de Circuitos Elétricos II",     sem: 7,  prereqs: ["ENC-32","ENC-35"] },
 
   { id: "ENC-45", name: "Eletrônica Analógica II",                   sem: 8,  prereqs: ["ENC-40"] },
   { id: "ENC-46", name: "Processamento Digital de Sinais",           sem: 8,  prereqs: ["ENC-41"] },
@@ -77,14 +81,16 @@ export const CURRICULUM_PERIODS = Array.from({ length: 10 }, (_, i) => ({
 }));
 
 // ─── ATTENDANCE META ─────────────────────────────────────────────────────────
+// Atualizado para o período letivo 2026/2 (fonte: SUAP → Locais e Horários de
+// Aula). cargaHoraria = total de AULAS do diário; aulasPorDia = aulas por
+// encontro (usado para estimar quantos dias ainda dá pra faltar).
 export const ATTENDANCE_META = {
-  "ENC-34": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Eng. Software" },
-  "ENC-33": { cargaHoraria: 60, aulasPorDia: 3, shortName: "Extensão I" },
-  "ENC-29": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Compiladores" },
-  "ENC-32": { cargaHoraria: 40, aulasPorDia: 2, shortName: "Lab. Circuitos I" },
-  "ENC-30": { cargaHoraria: 60, aulasPorDia: 3, shortName: "Prog. WEB" },
-  "ENC-24": { cargaHoraria: 60, aulasPorDia: 2, shortName: "Cálculo Numérico" },
-  "ENC-22": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Eq. Diferenciais" },
+  "ENC-37": { cargaHoraria: 80, aulasPorDia: 2, shortName: "Análise e Projeto" },
+  "ENC-55": { cargaHoraria: 40, aulasPorDia: 2, shortName: "Lab. Circuitos II" },
+  "ENC-42": { cargaHoraria: 80, aulasPorDia: 2, shortName: "Redes de Comp." },
+  "ENC-39": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Circuitos II" },
+  "ENC-40": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Eletrônica I" },
+  "ENC-56": { cargaHoraria: 40, aulasPorDia: 2, shortName: "Homem e Sociedade" },
 };
 
 // ─── SCHEDULE DATA ───────────────────────────────────────────────────────────
@@ -94,57 +100,64 @@ export const DAY_START = toMin(13, 0);
 export const DAY_END   = toMin(22, 25);
 export const DAY_SPAN  = DAY_END - DAY_START;
 
+// Horário 2026/2 — códigos SUAP dos diários entre colchetes.
+// Vespertino: V1 13:00 · V2 13:55 · V3 14:50 · V4 16:00 · V5 16:55 · V6 17:50
+// Noturno:    N2 18:50 · N3 18:55 · N4 19:41 · N5 20:45 · N6 21:35
 export const SCHEDULE = [
   {
     day: "Segunda", dayShort: "SEG",
     blocks: [
-      { id: "ENC-34", name: "Engenharia de Software", start: toMin(13,0),  end: toMin(16,40), aulas: 4 },
-      { id: "ENC-33", name: "Extensão I",             start: toMin(16,40), end: toMin(19,40), aulas: 3,
-        intervals: [{ start: toMin(18,20), end: toMin(18,50) }] },
+      // [2V12] Lab. de Circuitos Elétricos II — Paulo Henrique Correa de Morais
+      { id: "ENC-55", name: "Lab. Circuitos II",   start: toMin(13,0),  end: toMin(14,45), aulas: 2 },
+      // [2V34] Análise e Projeto de Sistemas Computacionais — Evandro Cesar Freiberger
+      { id: "ENC-37", name: "Análise e Projeto",   start: toMin(14,50), end: toMin(16,50), aulas: 2,
+        intervals: [{ start: toMin(15,40), end: toMin(16,0) }] },
+      // [2N34] Homem, Cultura e Sociedade — Sandro Aparecido Lima dos Santos
+      { id: "ENC-56", name: "Homem e Sociedade",   start: toMin(18,55), end: toMin(20,30), aulas: 2 },
     ],
   },
   {
     day: "Terça", dayShort: "TER",
     blocks: [
-      { id: "ENC-29", name: "Compiladores", start: toMin(13,0),  end: toMin(16,40), aulas: 4 },
-      { id: "ENC-33", name: "Extensão I",   start: toMin(16,40), end: toMin(19,40), aulas: 3,
-        intervals: [{ start: toMin(18,20), end: toMin(18,50) }] },
+      // [3V12] Análise e Projeto de Sistemas Computacionais
+      { id: "ENC-37", name: "Análise e Projeto",   start: toMin(13,0),  end: toMin(14,45), aulas: 2 },
+      // [3V56] Redes de Computadores — Juliana Fonseca Antunes
+      { id: "ENC-42", name: "Redes de Comp.",      start: toMin(16,55), end: toMin(18,40), aulas: 2 },
     ],
   },
   {
     day: "Quarta", dayShort: "QUA",
     blocks: [
-      { id: "ENC-32", name: "Lab. Circuitos I", start: toMin(13,0), end: toMin(14,40), aulas: 2 },
+      // [4V1234] Circuitos Elétricos II — Ronan Marcelo Martins
+      { id: "ENC-39", name: "Circuitos II",        start: toMin(13,0),  end: toMin(16,50), aulas: 4,
+        intervals: [{ start: toMin(15,40), end: toMin(16,0) }] },
     ],
   },
   {
     day: "Quinta", dayShort: "QUI",
     blocks: [
-      { id: "ENC-30", name: "Prog. WEB",        start: toMin(13,0),  end: toMin(13,50), aulas: 1 },
-      { id: "ENC-24", name: "Cálculo Numérico", start: toMin(13,50), end: toMin(15,30), aulas: 2 },
-      { id: "ENC-30", name: "Prog. WEB",        start: toMin(15,50), end: toMin(17,30), aulas: 2 },
+      // [5V56] Redes de Computadores
+      { id: "ENC-42", name: "Redes de Comp.",      start: toMin(16,55), end: toMin(18,40), aulas: 2 },
+      // [5N2456] Eletrônica I (equivalente a Eletrônica Analógica I) — Alberto Willian Mascarenhas
+      { id: "ENC-40", name: "Eletrônica I",        start: toMin(18,50), end: toMin(22,25), aulas: 4,
+        intervals: [{ start: toMin(20,30), end: toMin(20,45) }] },
     ],
   },
   {
     day: "Sexta", dayShort: "SEX",
-    blocks: [
-      { id: "ENC-24", name: "Cálculo Numérico", start: toMin(13,0),  end: toMin(14,40), aulas: 2 },
-      { id: "ENC-22", name: "Eq. Diferenciais", start: toMin(18,50), end: toMin(22,25), aulas: 4,
-        intervals: [{ start: toMin(20,30), end: toMin(20,45) }] },
-    ],
+    blocks: [],
   },
 ];
 
 // Cores por disciplina usadas APENAS na aba Horário (blocos + legenda).
 // Tons pastel desaturados (-100/-200/-50) para não competir com o tema editorial.
 export const SUBJECT_COLORS = {
-  "ENC-34": { bg: "bg-violet-100", border: "border-violet-200", text: "text-violet-800", dot: "bg-violet-500", light: "bg-violet-50" },
-  "ENC-33": { bg: "bg-teal-100",   border: "border-teal-200",   text: "text-teal-800",   dot: "bg-teal-500",   light: "bg-teal-50" },
-  "ENC-29": { bg: "bg-orange-100", border: "border-orange-200", text: "text-orange-800", dot: "bg-orange-500", light: "bg-orange-50" },
-  "ENC-32": { bg: "bg-pink-100",   border: "border-pink-200",   text: "text-pink-800",   dot: "bg-pink-500",   light: "bg-pink-50" },
-  "ENC-30": { bg: "bg-blue-100",   border: "border-blue-200",   text: "text-blue-800",   dot: "bg-blue-500",   light: "bg-blue-50" },
-  "ENC-24": { bg: "bg-amber-100",  border: "border-amber-200",  text: "text-amber-800",  dot: "bg-amber-500",  light: "bg-amber-50" },
-  "ENC-22": { bg: "bg-red-100",    border: "border-red-200",    text: "text-red-800",    dot: "bg-red-500",    light: "bg-red-50" },
+  "ENC-37": { bg: "bg-violet-100", border: "border-violet-200", text: "text-violet-800", dot: "bg-violet-500", light: "bg-violet-50" },
+  "ENC-55": { bg: "bg-teal-100",   border: "border-teal-200",   text: "text-teal-800",   dot: "bg-teal-500",   light: "bg-teal-50" },
+  "ENC-42": { bg: "bg-orange-100", border: "border-orange-200", text: "text-orange-800", dot: "bg-orange-500", light: "bg-orange-50" },
+  "ENC-39": { bg: "bg-pink-100",   border: "border-pink-200",   text: "text-pink-800",   dot: "bg-pink-500",   light: "bg-pink-50" },
+  "ENC-40": { bg: "bg-blue-100",   border: "border-blue-200",   text: "text-blue-800",   dot: "bg-blue-500",   light: "bg-blue-50" },
+  "ENC-56": { bg: "bg-amber-100",  border: "border-amber-200",  text: "text-amber-800",  dot: "bg-amber-500",  light: "bg-amber-50" },
 };
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────

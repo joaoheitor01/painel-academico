@@ -1,6 +1,17 @@
 // ─── suap-sync.js ──────────────────────────────────────────────────────────
 // Cloudflare Worker: proxy de login no SUAP (IFMT) + extração do boletim.
 // Stateless — não loga matricula, senha ou cookies em nenhum momento.
+//
+// ── CORREÇÕES 2026/2 ───────────────────────────────────────────────────────
+// FIX 1 · NOME_PARA_ID: nomes de 2026/2 que não existiam no mapa
+//         ("Análise e Projeto…", "Laboratório de Circuitos Elétricos II",
+//          "Eletrônica I", "Homem, Cultura e Sociedade").
+// FIX 2 · encontrarId(): o fallback por substring casava "…Elétricos II" com
+//         a chave "…elétricos i" (prefixo), jogando o Lab. II em cima do
+//         Lab. I. Agora exige limite de palavra no fim do match.
+// FIX 3 · "Reprovado": antes o Worker não escrevia nada, então uma disciplina
+//         reprovada continuava eternamente como "Cursando" no localStorage.
+//         Agora grava "next" (precisa refazer) e zera as faltas.
 
 const ALLOWED_ORIGIN = "https://joaoheitor01.github.io";
 const SUAP_BASE = "https://suap.ifmt.edu.br";
@@ -10,8 +21,6 @@ function corsHeaders() {
     "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
-    // Hardening: nunca inferir tipo, nunca vazar referrer, nunca cachear
-    // (respostas derivam de credenciais). Vary p/ caches intermediários.
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer",
     "Cache-Control": "no-store",
@@ -20,8 +29,6 @@ function corsHeaders() {
 }
 
 // ─── Descriptografia da senha (RSA-OAEP) ───────────────────────────────────
-// A senha chega cifrada com a chave pública (ver cryptoSuap.js no cliente) e é
-// aberta aqui, em memória, com a chave privada guardada no secret SUAP_PRIVATE_KEY.
 function b64ToBuf(b64) {
   const bin = atob(b64);
   const buf = new Uint8Array(bin.length);
@@ -53,8 +60,6 @@ function respJson(status, data, extraHeaders = {}) {
 }
 
 // ─── Mapeamento nome (SUAP) → ID (painel) ──────────────────────────────────
-// Chaves cobrem todos os DEFAULT_SUBJECTS de curriculumData.js. São
-// normalizadas (sem acento, sem parênteses) na carga do módulo, abaixo.
 const NOME_PARA_ID_RAW = {
   "fundamentos da matemática": "ENC-01",
   "algoritmos i": "ENC-02",
@@ -74,6 +79,7 @@ const NOME_PARA_ID_RAW = {
   "cálculo vetorial e geometria analítica": "ENC-16",
   "matemática discreta e teoria dos grafos": "ENC-17",
   "saúde e segurança do trabalho": "ENC-18",
+  "segurança do trabalho": "ENC-18",                              // FIX 1
   "banco de dados": "ENC-19",
   "programação orientada a objetos": "ENC-20",
   "física geral e experimental iii": "ENC-21",
@@ -93,14 +99,17 @@ const NOME_PARA_ID_RAW = {
   "circuitos elétricos i": "ENC-35",
   "transmissão e comunicação de dados": "ENC-36",
   "análise e proj. de sistemas computacionais": "ENC-37",
+  "análise e projeto de sistemas computacionais": "ENC-37",       // FIX 1
   "extensão ii": "ENC-38",
   "circuitos elétricos ii": "ENC-39",
   "eletrônica analógica i": "ENC-40",
+  "eletrônica i": "ENC-40",                                       // FIX 1 (equivalente)
   "sinais e sistemas lineares": "ENC-41",
   "redes de computadores": "ENC-42",
   "inteligência artificial": "ENC-43",
   "extensão iii": "ENC-44",
   "eletrônica analógica ii": "ENC-45",
+  "eletrônica ii": "ENC-45",                                      // FIX 1 (equivalente)
   "processamento digital de sinais": "ENC-46",
   "sistemas embarcados": "ENC-47",
   "segurança computacional": "ENC-48",
@@ -110,6 +119,8 @@ const NOME_PARA_ID_RAW = {
   "internet das coisas": "ENC-52",
   "extensão v": "ENC-53",
   "trabalho de conclusão de curso": "ENC-54",
+  "laboratório de circuitos elétricos ii": "ENC-55",              // FIX 1
+  "homem, cultura e sociedade": "ENC-56",                         // FIX 1
 };
 
 const DIACRITIC_MIN = 0x0300;
@@ -135,15 +146,31 @@ const NOME_PARA_ID = Object.fromEntries(
   Object.entries(NOME_PARA_ID_RAW).map(([k, v]) => [normalizar(k), v])
 );
 
-function encontrarId(nomeSuap) {
+// FIX 2 — o fallback por substring casava prefixos ("…eletricos i" dentro de
+// "…eletricos ii"), o que fazia o Laboratório de Circuitos Elétricos II ser
+// gravado como ENC-32 (Lab. I) e sobrescrever um status já correto.
+// Agora só aceita o match se ele terminar em limite de palavra.
+export function matchComLimite(texto, chave) {
+  let from = 0;
+  for (;;) {
+    const i = texto.indexOf(chave, from);
+    if (i === -1) return false;
+    const antes = i === 0 ? " " : texto[i - 1];
+    const depois = texto[i + chave.length] ?? " ";
+    if (!/[a-z0-9]/.test(antes) && !/[a-z0-9]/.test(depois)) return true;
+    from = i + 1;
+  }
+}
+
+export function encontrarId(nomeSuap) {
   const normalizado = normalizar(nomeSuap);
   // 1. Lookup exato
   if (NOME_PARA_ID[normalizado]) return NOME_PARA_ID[normalizado];
-  // 2. Fallback substring (chave mais longa que bate ganha, evita ambiguidade)
+  // 2. Fallback substring com limite de palavra (chave mais longa vence)
   let melhorChave = "";
   let melhorId = null;
   for (const [chave, id] of Object.entries(NOME_PARA_ID)) {
-    if (normalizado.includes(chave) && chave.length > melhorChave.length) {
+    if (chave.length > melhorChave.length && matchComLimite(normalizado, chave)) {
       melhorChave = chave;
       melhorId = id;
     }
@@ -152,16 +179,15 @@ function encontrarId(nomeSuap) {
 }
 
 // ─── Mapeamento situação (SUAP) → status (painel) ──────────────────────────
-// "done": disciplina integralizada (aprovada, dispensada, aproveitada).
-const SITUACOES_DONE = ["aprovado", "dispensado", "aproveitamento", "concluído", "cumprida"];
-// "current": disciplina ativa no período (em curso ou ainda em definição).
+const SITUACOES_DONE = ["aprovado", "dispensado", "aproveitamento", "concluído", "concluido", "cumprida"];
 const SITUACOES_CURRENT = ["cursando", "andamento", "prova final", "segunda chamada", "exame final", "matriculado"];
-// Qualquer "reprovado *" (por nota/falta) ou situação desconhecida → NÃO altera:
-// o Worker não sabe se o aluno vai cursar de novo, então deixa o usuário decidir.
+// FIX 3 — reprovações agora são registradas como "next" (refazer). Antes o
+// Worker não escrevia nada e o status antigo ("current") ficava congelado.
+// Prefixo "reprov" cobre tanto "Reprovado" quanto a forma abreviada que o
+// SUAP usa para falta: "Reprov. por Falta". ("aprovado" não contém "reprov".)
+const SITUACOES_RETAKE = ["reprov"];
 
 // ─── Descoberta dos períodos letivos (<select id="ano_periodo">) ───────────
-// O boletim do SUAP mostra UM período por vez (default = atual). Os demais
-// ficam nas <option> de um <select>, navegáveis via ?ano_periodo=YYYY_S.
 export function extrairPeriodos(html) {
   const sel = html.match(/<select[^>]*id="ano_periodo"[\s\S]*?<\/select>/i)?.[0] || "";
   const periodos = [];
@@ -170,27 +196,15 @@ export function extrairPeriodos(html) {
   while ((m = optRegex.exec(sel)) !== null) {
     if (m[1]) periodos.push(m[1]);
   }
-  return periodos; // ex.: ["2026_1","2025_2","2025_1","2024_2","2024_1"]
+  return periodos; // ex.: ["2026_2","2026_1","2025_2","2025_1","2024_2","2024_1"]
 }
 
-// Normaliza uma célula de nota: vírgula decimal do SUAP → ponto; vazio ou "-" vira "-".
 const limparNota = (s) => {
   const t = (s || "").trim();
   return t && t !== "-" ? t.replace(",", ".") : "-";
 };
 
-// ─── Parsing de UMA página de boletim (sem DOM disponível no Worker) ───────
-// Acumula em faltas/statusOverrides/notas. first-write-wins: como as páginas
-// são varridas do período MAIS NOVO para o mais antigo, o estado mais recente
-// de cada disciplina prevalece (ex.: reprovou e depois foi aprovado → "done").
-//
-// isPeriodoAtivo: true apenas para o período letivo corrente (o selecionado
-// por padrão no boletim, primeiro item do <select>). Enquanto o período
-// ainda não terminou, disciplinas já lançadas como "Aprovado" no SUAP
-// continuam aparecendo como "Cursando" no painel — o professor pode postar
-// a nota final antes do fim do semestre, mas o aluno ainda está cursando o
-// período. Só quando o período sai do <select> como "atual" (i.e., vira
-// histórico numa sincronização futura) é que a disciplina passa a "done".
+// ─── Parsing de UMA página de boletim ──────────────────────────────────────
 export function parseBoletimPagina(html, faltas, statusOverrides, notas, isPeriodoAtivo = false) {
   const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   const stripTagsRegex = /<[^>]+>/g;
@@ -198,17 +212,15 @@ export function parseBoletimPagina(html, faltas, statusOverrides, notas, isPerio
   let rowMatch;
   while ((rowMatch = rowRegex.exec(html)) !== null) {
     const rowHtml = rowMatch[1];
-    const cellRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi; // recriado por linha — regex global não pode ser reusado entre strings diferentes
+    const cellRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
     const cells = [];
     let cellMatch;
     while ((cellMatch = cellRegex.exec(rowHtml)) !== null) {
-      // colapsa quebras de linha/indentação do HTML (ex.: nome em "Normal.1294\n  - Cálculo Numérico")
       cells.push(cellMatch[1].replace(stripTagsRegex, "").replace(/\s+/g, " ").trim());
     }
 
-    if (cells.length < 7) continue; // precisa de cols[0..6]; pula cabeçalho/tfoot/linhas vazias
+    if (cells.length < 7) continue;
 
-    // Coluna [1]: nome da disciplina (remove prefixo "Normal.XXXX - ")
     const nomeBruto = cells[1] || "";
     const nome = nomeBruto.includes(" - ")
       ? nomeBruto.split(" - ").pop().trim()
@@ -217,17 +229,21 @@ export function parseBoletimPagina(html, faltas, statusOverrides, notas, isPerio
 
     const encId = encontrarId(nome);
     if (!encId) continue;
-    if (encId in statusOverrides) continue; // first-write-wins (período mais novo já decidiu)
+    if (encId in statusOverrides) continue; // first-write-wins
 
-    // Coluna [4]: total de faltas | Coluna [6]: situação
     const faltasNum = parseInt((cells[4] || "0").replace(/\D/g, "") || "0", 10);
     const situacao = (cells[6] || "").toLowerCase().trim();
 
-    const isDone = SITUACOES_DONE.some(s => situacao.includes(s));
-    const isCurrent = SITUACOES_CURRENT.some(s => situacao.includes(s));
+    const isRetake  = SITUACOES_RETAKE.some(s => situacao.includes(s));
+    const isDone    = !isRetake && SITUACOES_DONE.some(s => situacao.includes(s));
+    const isCurrent = !isRetake && SITUACOES_CURRENT.some(s => situacao.includes(s));
 
-    if (isPeriodoAtivo && (isDone || isCurrent)) {
-      // Período letivo em andamento: força "current" mesmo se já "Aprovado".
+    if (isRetake) {
+      // FIX 3 — reprovado (por nota ou falta): sai de "current", vira "próxima".
+      statusOverrides[encId] = "next";
+      faltas[encId] = 0;
+      delete notas[encId];
+    } else if (isPeriodoAtivo && (isDone || isCurrent)) {
       statusOverrides[encId] = "current";
       faltas[encId] = faltasNum;
       notas[encId] = {
@@ -238,10 +254,10 @@ export function parseBoletimPagina(html, faltas, statusOverrides, notas, isPerio
       };
     } else if (isDone) {
       statusOverrides[encId] = "done";
+      faltas[encId] = 0;
     } else if (isCurrent) {
       statusOverrides[encId] = "current";
       faltas[encId] = faltasNum;
-      // Notas apenas das disciplinas em curso: [7]=P1, [9]=Média, [10]=AF, [12]=MFD
       notas[encId] = {
         p1:    limparNota(cells[7]),
         media: limparNota(cells[9]),
@@ -249,16 +265,11 @@ export function parseBoletimPagina(html, faltas, statusOverrides, notas, isPerio
         mfd:   limparNota(cells[12]),
       };
     }
-    // reprovado / cancelado / desconhecido → não altera
+    // cancelado / trancado / desconhecido → não altera
   }
 }
 
 // ─── Cookie jar ─────────────────────────────────────────────────────────────
-// O SUAP usa o esquema de cookies com prefixo "__Host-" (ex.: __Host-csrftoken,
-// __Host-sessionid), não os nomes simples "csrftoken"/"sessionid". Por isso
-// mantemos um jar que repassa TODOS os cookies recebidos entre requisições
-// (igual ao requests.Session do Python), e localizamos os que precisamos
-// por sufixo do nome em vez de assumir o nome exato.
 function mergeCookies(jar, setCookies) {
   for (const c of setCookies) {
     const pair = c.split(";")[0];
@@ -298,9 +309,6 @@ export default {
 
     const { matricula, senha, senha_enc } = body || {};
 
-    // Preferencial: senha cifrada (RSA-OAEP), aberta só aqui em memória.
-    // Fallback em texto claro mantém compatibilidade com clientes antigos
-    // ainda em cache do Service Worker durante o rollout.
     let senhaPlain = senha;
     if (senha_enc) {
       if (!env || !env.SUAP_PRIVATE_KEY) {
@@ -366,7 +374,7 @@ export default {
         return respJson(502, { erro: "sessionid não encontrado" });
       }
 
-      // STEP C — Fetch boletim do período atual + descobrir todos os períodos
+      // STEP C — boletim do período atual + descobrir todos os períodos
       const headersBoletim = { "Cookie": cookieHeader(jar), "User-Agent": "Mozilla/5.0" };
       const baseUrl = `${SUAP_BASE}/edu/aluno/${encodeURIComponent(matricula)}/?tab=boletim`;
 
@@ -374,17 +382,14 @@ export default {
       const primeiroHtml = await primeiraResp.text();
       const periodos = extrairPeriodos(primeiroHtml);
 
-      // STEP D — parseBoletim de TODOS os períodos (mais novo → mais antigo)
+      // STEP D — parse de TODOS os períodos (mais novo → mais antigo)
       const faltas = {};
       const statusOverrides = {};
       const notas = {};
 
       if (periodos.length === 0) {
-        // Sem seletor de períodos: parseia ao menos a página atual (é o período ativo).
         parseBoletimPagina(primeiroHtml, faltas, statusOverrides, notas, true);
       } else {
-        // periodos[0] é o período ativo (primeira opção do <select>, já carregada
-        // em primeiroHtml — evita um fetch redundante). Os demais são históricos.
         parseBoletimPagina(primeiroHtml, faltas, statusOverrides, notas, true);
         for (let i = 1; i < periodos.length; i++) {
           const url = `${baseUrl}&ano_periodo=${encodeURIComponent(periodos[i])}`;
