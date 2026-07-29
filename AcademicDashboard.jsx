@@ -177,7 +177,7 @@ function layoutDay(blocks) {
   return out;
 }
 
-function TabHorario({ schedule, colors }) {
+function TabHorario({ schedule, colors, meta }) {
   const now = new Date();
   const dow = now.getDay(); // 0 dom .. 6 sáb
   const initialDay = dow >= 1 && dow <= 5 ? dow - 1 : 0;
@@ -204,6 +204,7 @@ function TabHorario({ schedule, colors }) {
   const gridHeight = (winEnd - winStart) + OFFSET * 2;
 
   // Estatísticas do rodapé: derivadas do horário real, não mais chumbadas.
+  const faltando = meta?.naoEncontradas || [];
   const carga = (d) => d.blocks.reduce((x, b) => x + b.aulas, 0);
   const comAula = schedule.filter(d => d.blocks.length > 0);
   const maisPesado = comAula.reduce((a, d) => (!a || carga(d) > carga(a) ? d : a), null);
@@ -216,6 +217,23 @@ function TabHorario({ schedule, colors }) {
         <p className="text-[13px] text-[#6D6D72] mt-0.5">Engenharia de Computação - IFMT</p>
         <p className="text-[13px] text-[#6D6D72] mt-0.5">{weekLabel}</p>
       </div>
+
+      {/* Disciplina que a grade oficial ainda não publicou. Aparece na tela de
+          propósito: sumir em silêncio foi exatamente o bug de 2026/1. */}
+      {faltando.length > 0 && (
+        <div className="mx-4 mt-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex gap-3 items-start">
+          <span className="text-lg leading-none">⚠</span>
+          <div>
+            <p className="text-sm font-bold text-amber-700">
+              {faltando.length === 1 ? "1 disciplina fora da grade" : `${faltando.length} disciplinas fora da grade`}
+            </p>
+            <p className="text-xs text-[#6D6D72] mt-0.5">
+              {faltando.map(f => f.nome).join(" · ")} — você está matriculado, mas o
+              IFMT ainda não publicou o horário no quadro oficial.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* DAY SELECTOR */}
       <div className="px-4 pb-3 bg-white border-b border-gray-100">
@@ -870,6 +888,7 @@ function Dashboard({ userKey, displayName, onLogout }) {
   const [statusOverrides, setStatusOverrides] = useState({});
   const [notas, setNotas] = useState({});
   const [horario, setHorario] = useState([]);
+  const [horarioMeta, setHorarioMeta] = useState(null);
   const [hydratedFor, setHydratedFor] = useState(null);
   const [suapModal, setSuapModal] = useState(false);
   const [sobreModal, setSobreModal] = useState(false);
@@ -888,6 +907,7 @@ function Dashboard({ userKey, displayName, onLogout }) {
         setStatusOverrides(data.statusOverrides);
         setNotas(data.notas);
         setHorario(data.horario);
+        setHorarioMeta(data.horarioMeta);
         setHydratedFor(userKey);
       })
       .catch(() => {
@@ -899,8 +919,8 @@ function Dashboard({ userKey, displayName, onLogout }) {
 
   useEffect(() => {
     if (hydratedFor !== userKey) return;
-    void saveUserData(userKey, { faltas, statusOverrides, notas, horario });
-  }, [hydratedFor, userKey, faltas, statusOverrides, notas, horario]);
+    void saveUserData(userKey, { faltas, statusOverrides, notas, horario, horarioMeta });
+  }, [hydratedFor, userKey, faltas, statusOverrides, notas, horario, horarioMeta]);
 
   // Horário e carga horária saem do SUAP (por aluno). Enquanto a conta não
   // sincronizou, buildSchedule/buildAttendanceMeta caem no fallback estático.
@@ -993,6 +1013,7 @@ function Dashboard({ userKey, displayName, onLogout }) {
       // Horário é substituído, não mesclado: é a foto do período atual.
       // Worker antigo (sem STEP E) não manda o campo — aí preserva o que havia.
       if (Array.isArray(data.horario)) setHorario(data.horario);
+      if (data.horarioMeta !== undefined) setHorarioMeta(data.horarioMeta);
       setSuapModal(false);
 
       // Após o 1º sync, oferece ativar notificações (se ainda não decidiu).
@@ -1074,7 +1095,7 @@ function Dashboard({ userKey, displayName, onLogout }) {
         <main className="flex-1 overflow-y-auto pb-20 lg:pb-10">
           <div className="lg:max-w-5xl lg:mx-auto lg:w-full">
             {tab === "geral"   && <TabGeral subjects={subjects} stats={stats} doneSubs={doneSubs} attendanceMeta={attendanceMeta} />}
-            {tab === "horario" && <TabHorario schedule={schedule} colors={subjectColors} />}
+            {tab === "horario" && <TabHorario schedule={schedule} colors={subjectColors} meta={horarioMeta} />}
             {tab === "notas"   && <TabNotas subjects={subjects} faltas={faltas} setFaltas={setFaltas} notas={notas} onOpenSuap={() => setSuapModal(true)} attendanceMeta={attendanceMeta} />}
             {tab === "mais" && mais === null && (
               <TabMais displayName={displayName}

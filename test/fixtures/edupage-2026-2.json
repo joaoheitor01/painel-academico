@@ -1,0 +1,381 @@
+{
+ "r": {
+  "dbiAccessorRes": {
+   "tables": [
+    {
+     "id": "periods",
+     "data_rows": [
+      {
+       "id": "1",
+       "period": "1",
+       "name": "1ª aula",
+       "short": "1ª M",
+       "starttime": "07:00",
+       "endtime": "07:45"
+      },
+      {
+       "id": "2",
+       "period": "2",
+       "name": "2ª aula",
+       "short": "2ª M",
+       "starttime": "07:45",
+       "endtime": "08:30"
+      },
+      {
+       "id": "3",
+       "period": "3",
+       "name": "3ª aula",
+       "short": "3ª M",
+       "starttime": "08:30",
+       "endtime": "09:15"
+      },
+      {
+       "id": "4",
+       "period": "4",
+       "name": "4ª aula",
+       "short": "4ª M",
+       "starttime": "09:35",
+       "endtime": "10:20"
+      },
+      {
+       "id": "5",
+       "period": "5",
+       "name": "5ª aula",
+       "short": "5ª M",
+       "starttime": "10:20",
+       "endtime": "11:05"
+      },
+      {
+       "id": "6",
+       "period": "6",
+       "name": "6ª aula",
+       "short": "6ª M",
+       "starttime": "11:05",
+       "endtime": "11:50"
+      },
+      {
+       "id": "7",
+       "period": "7",
+       "name": "1ª aula",
+       "short": "1ª V",
+       "starttime": "13:00",
+       "endtime": "13:45"
+      },
+      {
+       "id": "8",
+       "period": "8",
+       "name": "2ª aula",
+       "short": "2ª V",
+       "starttime": "13:45",
+       "endtime": "14:30"
+      },
+      {
+       "id": "9",
+       "period": "9",
+       "name": "3ª aula",
+       "short": "3ª V",
+       "starttime": "14:30",
+       "endtime": "15:15"
+      },
+      {
+       "id": "10",
+       "period": "10",
+       "name": "4ª aula",
+       "short": "4ª V",
+       "starttime": "15:35",
+       "endtime": "16:20"
+      },
+      {
+       "id": "11",
+       "period": "11",
+       "name": "5ª aula",
+       "short": "5ª V",
+       "starttime": "16:20",
+       "endtime": "17:05"
+      },
+      {
+       "id": "12",
+       "period": "12",
+       "name": "6ª aula",
+       "short": "6ª V",
+       "starttime": "17:05",
+       "endtime": "17:50"
+      },
+      {
+       "id": "13",
+       "period": "13",
+       "name": "1ª aula",
+       "short": "1ª N",
+       "starttime": "18:50",
+       "endtime": "19:40"
+      },
+      {
+       "id": "14",
+       "period": "14",
+       "name": "2ª aula",
+       "short": "2ª N",
+       "starttime": "19:40",
+       "endtime": "20:30"
+      },
+      {
+       "id": "15",
+       "period": "15",
+       "name": "3ª aula",
+       "short": "3ª N",
+       "starttime": "20:45",
+       "endtime": "21:35"
+      },
+      {
+       "id": "16",
+       "period": "16",
+       "name": "4ª aula",
+       "short": "4ª N",
+       "starttime": "21:35",
+       "endtime": "22:25"
+      }
+     ]
+    },
+    {
+     "id": "days",
+     "data_rows": [
+      {
+       "id": "0",
+       "name": "Segunda",
+       "short": "Seg"
+      },
+      {
+       "id": "1",
+       "name": "Terça",
+       "short": "Ter"
+      },
+      {
+       "id": "2",
+       "name": "Quarta",
+       "short": "Qua"
+      },
+      {
+       "id": "3",
+       "name": "Quinta",
+       "short": "Qui"
+      },
+      {
+       "id": "4",
+       "name": "Sexta",
+       "short": "Sex"
+      },
+      {
+       "id": "5",
+       "name": "Sábado",
+       "short": "Sáb"
+      }
+     ]
+    },
+    {
+     "id": "subjects",
+     "data_rows": [
+      {
+       "id": "*153",
+       "name": "Circuitos Elétricos II",
+       "short": "CE-II"
+      },
+      {
+       "id": "-204",
+       "name": "Eletrônica I",
+       "short": "Elet I"
+      },
+      {
+       "id": "*602",
+       "name": "Homem, Cultura e Sociedade",
+       "short": "HCS"
+      },
+      {
+       "id": "*603",
+       "name": "Homem, Cultura e Sociedade",
+       "short": "H.Cultura e Soc."
+      },
+      {
+       "id": "*671",
+       "name": "Laboratório de Circuitos Elétricos II",
+       "short": "Lab.C.Eletr.II"
+      },
+      {
+       "id": "-574",
+       "name": "Redes de Computadores",
+       "short": "RdC"
+      }
+     ]
+    },
+    {
+     "id": "teachers",
+     "data_rows": [
+      {
+       "id": "*7",
+       "short": "Alberto Mascarenhas"
+      },
+      {
+       "id": "*130",
+       "short": "Juliana Antunes"
+      },
+      {
+       "id": "*220",
+       "short": "Paulo Morais"
+      },
+      {
+       "id": "*240",
+       "short": "Ronan Martins"
+      },
+      {
+       "id": "*250",
+       "short": "Sandro Santos"
+      }
+     ]
+    },
+    {
+     "id": "classes",
+     "data_rows": [
+      {
+       "id": "*55",
+       "name": "DCOM 7844.6 Engenh. Comput.",
+       "short": "DCOM 7844.6 Engenh. Comput."
+      },
+      {
+       "id": "*58",
+       "name": "DCOM 7844.9 Engenh. Comput.",
+       "short": "DCOM 7844.9 Engenh. Comput."
+      },
+      {
+       "id": "*64",
+       "name": "DEEA 6144.4 Engenharia de Controle e Automação",
+       "short": "DEEA 6144.4 ECA"
+      },
+      {
+       "id": "*65",
+       "name": "DEEA 6144.5I Engenharia de Controle e Automação",
+       "short": "DEEA 6144.5I ECA"
+      }
+     ]
+    },
+    {
+     "id": "lessons",
+     "data_rows": [
+      {
+       "id": "*516",
+       "subjectid": "*153",
+       "teacherids": [
+        "*240"
+       ],
+       "classids": [
+        "*64",
+        "*55"
+       ],
+       "count": 2,
+       "durationperiods": 2
+      },
+      {
+       "id": "*546",
+       "subjectid": "-204",
+       "teacherids": [
+        "*7"
+       ],
+       "classids": [
+        "*55",
+        "*65"
+       ],
+       "count": 2,
+       "durationperiods": 2
+      },
+      {
+       "id": "*1391",
+       "subjectid": "-574",
+       "teacherids": [
+        "*130"
+       ],
+       "classids": [
+        "*55"
+       ],
+       "count": 2,
+       "durationperiods": 2
+      },
+      {
+       "id": "*1490",
+       "subjectid": "*671",
+       "teacherids": [
+        "*220"
+       ],
+       "classids": [
+        "*55"
+       ],
+       "count": 1,
+       "durationperiods": 2
+      },
+      {
+       "id": "*1625",
+       "subjectid": "*602",
+       "teacherids": [
+        "*250"
+       ],
+       "classids": [
+        "*58"
+       ],
+       "count": 1,
+       "durationperiods": 2
+      }
+     ]
+    },
+    {
+     "id": "cards",
+     "data_rows": [
+      {
+       "id": "*428",
+       "lessonid": "*516",
+       "period": "7",
+       "days": "001000"
+      },
+      {
+       "id": "*429",
+       "lessonid": "*516",
+       "period": "9",
+       "days": "001000"
+      },
+      {
+       "id": "*453",
+       "lessonid": "*546",
+       "period": "15",
+       "days": "000100"
+      },
+      {
+       "id": "*454",
+       "lessonid": "*546",
+       "period": "13",
+       "days": "000100"
+      },
+      {
+       "id": "*1335",
+       "lessonid": "*1391",
+       "period": "11",
+       "days": "010000"
+      },
+      {
+       "id": "*1336",
+       "lessonid": "*1391",
+       "period": "10",
+       "days": "000100"
+      },
+      {
+       "id": "*1445",
+       "lessonid": "*1490",
+       "period": "7",
+       "days": "100000"
+      },
+      {
+       "id": "*1612",
+       "lessonid": "*1625",
+       "period": "13",
+       "days": "100000"
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

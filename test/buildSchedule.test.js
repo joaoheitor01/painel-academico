@@ -18,7 +18,12 @@ const descreve = (d) =>
     return base + iv;
   });
 
-test("buildSchedule() reproduz o horário de 2026/2 conferido no SUAP", () => {
+// ⚠ Estes horários são os que se obtém convertendo os códigos do SUAP pela
+// SLOT_TIMES — o caminho de FALLBACK, usado só se o EduPage estiver fora do ar.
+// Eles NÃO são os sinos reais: a grade oficial põe Redes na quinta às 15:35,
+// não às 16:55 (ver test/edupage.test.js). O teste existe para travar a
+// conversão, não para afirmar que este é o horário do aluno.
+test("fallback SUAP: converte os códigos de slot em blocos e intervalos", () => {
   assert.deepEqual(descreve(byDay["Segunda"]), [
     "Lab. Circuitos II 13:00–14:45 (2)",
     "Análise e Projeto 14:50–16:50 (2) int 15:40–16:00",

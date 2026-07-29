@@ -19,9 +19,12 @@ const DEFAULT_USER_DATA = {
   faltas: {},
   statusOverrides: {},
   notas: {},
-  // Horário do período atual, lido do SUAP por aluno (ver worker/suap-sync.js).
-  // Vazio = conta ainda não sincronizou → a UI cai no SCHEDULE estático.
+  // Horário do período atual: matrícula do SUAP + sinos da grade oficial do
+  // campus (EduPage). Vazio = conta ainda não sincronizou → SCHEDULE estático.
   horario: [],
+  // Procedência do horário e o que a grade oficial não publicou. Existe para
+  // que uma disciplina sumida apareça na tela em vez de ser descartada calada.
+  horarioMeta: null,
 };
 
 function withDefaults(parsed) {
@@ -30,6 +33,7 @@ function withDefaults(parsed) {
     statusOverrides: parsed?.statusOverrides || {},
     notas: parsed?.notas || {},
     horario: Array.isArray(parsed?.horario) ? parsed.horario : [],
+    horarioMeta: parsed?.horarioMeta ?? null,
   };
 }
 

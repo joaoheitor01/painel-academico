@@ -21,6 +21,8 @@
 // tentar primeiro o código estável do componente (CODIGO_PARA_ID) e só depois
 // o nome. Falha ao ler o horário não derruba o sync de notas.
 
+import { descobrirTimetable, baixarGrade, lerGrade, casarHorario } from "./edupage.js";
+
 const ALLOWED_ORIGIN = "https://joaoheitor01.github.io";
 const SUAP_BASE = "https://suap.ifmt.edu.br";
 
@@ -548,19 +550,40 @@ export default {
         }
       }
 
-      // STEP E — horário e carga horária do período atual, por aluno.
-      // Falhar aqui NÃO pode derrubar o sync de notas: no pior caso o painel
-      // segue com o SCHEDULE estático de fallback.
-      let horario = [];
+      // STEP E — matrícula do período atual (quais diários, professor e a carga
+      // horária real). Falhar aqui NÃO pode derrubar o sync de notas.
+      let matriculas = [];
       try {
         const urlHorario = `${SUAP_BASE}/edu/aluno/${encodeURIComponent(matricula)}/?tab=locais_aula_aluno`;
         const respHorario = await fetch(urlHorario, { headers: headersBoletim });
-        if (respHorario.ok) horario = parseHorarioPagina(await respHorario.text());
+        if (respHorario.ok) matriculas = parseHorarioPagina(await respHorario.text());
       } catch {
-        horario = [];
+        matriculas = [];
       }
 
-      return respJson(200, { faltas, statusOverrides, notas, horario });
+      // STEP F — horário de relógio pela grade OFICIAL do campus (EduPage).
+      // Os códigos do SUAP ("3V56") não dizem a hora; a grade de sinos que
+      // circula erra em até 1h20 (Redes na quinta é 15:35, não 16:55). O
+      // EduPage é público e traz turma + professor, então dá pra casar com
+      // segurança. Só entra no horário o que a grade oficial publicou.
+      let horario = [];
+      let horarioMeta = { fonte: "suap", naoEncontradas: [] };
+      if (matriculas.length) {
+        try {
+          const { ttNum, texto } = await descobrirTimetable();
+          const grade = lerGrade(await baixarGrade(ttNum));
+          const { horario: casado, naoEncontradas } = casarHorario(matriculas, grade);
+          horario = casado;
+          horarioMeta = { fonte: "edupage", grade: texto, naoEncontradas };
+        } catch {
+          // EduPage fora do ar: cai para os códigos do SUAP, que ao menos
+          // acertam o dia e a ordem das aulas.
+          horario = matriculas;
+          horarioMeta = { fonte: "suap", naoEncontradas: [] };
+        }
+      }
+
+      return respJson(200, { faltas, statusOverrides, notas, horario, horarioMeta });
     } catch (err) {
       return respJson(500, { erro: "erro inesperado ao sincronizar com o SUAP" });
     }
