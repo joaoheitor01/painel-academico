@@ -289,59 +289,21 @@ export function buildAttendanceMeta(horario) {
 // Usados só enquanto a conta não sincronizou com o SUAP. Depois do primeiro
 // sync, buildSchedule/buildAttendanceMeta assumem — e cada aluno vê o SEU
 // horário, não o de quem editou o repo por último.
-export const ATTENDANCE_META = {
-  "ENC-55": { cargaHoraria: 40, aulasPorDia: 2, shortName: "Lab. Circuitos II" },
-  "ENC-42": { cargaHoraria: 80, aulasPorDia: 2, shortName: "Redes de Computadores" },
-  "ENC-39": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Circuitos Elétricos II" },
-  "ENC-40": { cargaHoraria: 80, aulasPorDia: 4, shortName: "Eletrônica I" },
-  "ENC-56": { cargaHoraria: 40, aulasPorDia: 2, shortName: "Homem, Cultura e Sociedade" },
-};
+export const ATTENDANCE_META = {};
 
-// Horário 2026/2 da turma DCOM 7844.6, conferido contra a grade oficial do
-// campus (EduPage, HORARIO_2026_2_Campus.Cuiaba_29.07.2026).
+// Sem horário sincronizado não há grade nenhuma: apenas os dias, vazios.
 //
-// ⚠ Não derive estes horários dos códigos do SUAP ("3V56"): a grade de sinos
-// que circula erra feio no vespertino. Redes na quinta é 15:35, não 16:55.
-// Análise e Projeto não consta: o IFMT não publicou o horário dela.
+// Por que NÃO existe mais um SCHEDULE chumbado aqui: a grade do campus muda
+// quase todo dia (só em 29–30/07/2026 saíram três versões, e uma delas moveu
+// Homem, Cultura e Sociedade de segunda para sexta). Qualquer snapshot no
+// repo nasce errado — e, pior, era o horário de UMA pessoa sendo mostrado
+// para todos os colegas. O horário verdadeiro vem do EduPage, por aluno.
 export const SCHEDULE = [
-  {
-    day: "Segunda", dayShort: "SEG",
-    blocks: [
-      // Lab. de Circuitos Elétricos II — Paulo Morais
-      { id: "ENC-55", name: "Lab. Circuitos II", start: toMin(13,0), end: toMin(14,30), aulas: 2 },
-      // Homem, Cultura e Sociedade — Sandro Santos
-      { id: "ENC-56", name: "Homem, Cultura e Sociedade", start: toMin(18,50), end: toMin(20,30), aulas: 2 },
-    ],
-  },
-  {
-    day: "Terça", dayShort: "TER",
-    blocks: [
-      // Redes de Computadores — Juliana Antunes
-      { id: "ENC-42", name: "Redes de Computadores", start: toMin(16,20), end: toMin(17,50), aulas: 2 },
-    ],
-  },
-  {
-    day: "Quarta", dayShort: "QUA",
-    blocks: [
-      // Circuitos Elétricos II — Ronan Martins
-      { id: "ENC-39", name: "Circuitos Elétricos II", start: toMin(13,0), end: toMin(16,20), aulas: 4,
-        intervals: [{ start: toMin(15,15), end: toMin(15,35) }] },
-    ],
-  },
-  {
-    day: "Quinta", dayShort: "QUI",
-    blocks: [
-      // Redes de Computadores — Juliana Antunes
-      { id: "ENC-42", name: "Redes de Computadores", start: toMin(15,35), end: toMin(17,5), aulas: 2 },
-      // Eletrônica I (≡ Eletrônica Analógica I) — Alberto Mascarenhas
-      { id: "ENC-40", name: "Eletrônica I", start: toMin(18,50), end: toMin(22,25), aulas: 4,
-        intervals: [{ start: toMin(20,30), end: toMin(20,45) }] },
-    ],
-  },
-  {
-    day: "Sexta", dayShort: "SEX",
-    blocks: [],
-  },
+  { day: "Segunda", dayShort: "SEG", blocks: [] },
+  { day: "Terça",   dayShort: "TER", blocks: [] },
+  { day: "Quarta",  dayShort: "QUA", blocks: [] },
+  { day: "Quinta",  dayShort: "QUI", blocks: [] },
+  { day: "Sexta",   dayShort: "SEX", blocks: [] },
 ];
 
 // ─── CORES DA ABA HORÁRIO ────────────────────────────────────────────────────

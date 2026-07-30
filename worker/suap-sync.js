@@ -249,8 +249,17 @@ const limparNota = (s) => {
   return t && t !== "-" ? t.replace(",", ".") : "-";
 };
 
+// "80 aulas" → 80 (o boletim já traz a carga horária do diário)
+function extrairAulas(txt) {
+  const m = /(\d+)\s*aulas?/i.exec(txt || "");
+  return m ? Number(m[1]) : 0;
+}
+
 // ─── Parsing de UMA página de boletim ──────────────────────────────────────
-export function parseBoletimPagina(html, faltas, statusOverrides, notas, isPeriodoAtivo = false) {
+// `cursando`, quando passado, recebe as disciplinas do período ATIVO — nome,
+// código (Normal.7433), diário e carga horária. É essa a lista que define o
+// horário: o boletim é a fonte de "o que eu curso agora".
+export function parseBoletimPagina(html, faltas, statusOverrides, notas, isPeriodoAtivo = false, cursando = null) {
   const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   const stripTagsRegex = /<[^>]+>/g;
 
@@ -272,7 +281,8 @@ export function parseBoletimPagina(html, faltas, statusOverrides, notas, isPerio
       : nomeBruto.trim();
     if (!nome) continue;
 
-    const encId = encontrarId(nome, extrairCodigo(nomeBruto));
+    const codigo = extrairCodigo(nomeBruto);
+    const encId = encontrarId(nome, codigo);
     if (!encId) continue;
     if (encId in statusOverrides) continue; // first-write-wins
 
@@ -291,6 +301,16 @@ export function parseBoletimPagina(html, faltas, statusOverrides, notas, isPerio
     } else if (isPeriodoAtivo && (isDone || isCurrent)) {
       statusOverrides[encId] = "current";
       faltas[encId] = faltasNum;
+      if (cursando) {
+        cursando.push({
+          encId,
+          codigo,
+          nome,
+          diario: cells[0] || "",
+          cargaHoraria: extrairAulas(cells[2]),
+          professor: "", // preenchido depois por ?tab=locais_aula_aluno
+        });
+      }
       notas[encId] = {
         p1:    limparNota(cells[7]),
         media: limparNota(cells[9]),
@@ -538,48 +558,65 @@ export default {
       const statusOverrides = {};
       const notas = {};
 
-      if (periodos.length === 0) {
-        parseBoletimPagina(primeiroHtml, faltas, statusOverrides, notas, true);
-      } else {
-        parseBoletimPagina(primeiroHtml, faltas, statusOverrides, notas, true);
-        for (let i = 1; i < periodos.length; i++) {
-          const url = `${baseUrl}&ano_periodo=${encodeURIComponent(periodos[i])}`;
-          const resp = await fetch(url, { headers: headersBoletim });
-          const html = await resp.text();
-          parseBoletimPagina(html, faltas, statusOverrides, notas, false);
-        }
+      // O boletim do período ATIVO é a fonte de "quais disciplinas eu curso
+      // agora" — traz nome, código (Normal.7433), diário e carga horária.
+      const cursando = [];
+      parseBoletimPagina(primeiroHtml, faltas, statusOverrides, notas, true, cursando);
+      for (let i = 1; i < periodos.length; i++) {
+        const url = `${baseUrl}&ano_periodo=${encodeURIComponent(periodos[i])}`;
+        const resp = await fetch(url, { headers: headersBoletim });
+        const html = await resp.text();
+        parseBoletimPagina(html, faltas, statusOverrides, notas, false);
       }
 
-      // STEP E — matrícula do período atual (quais diários, professor e a carga
-      // horária real). Falhar aqui NÃO pode derrubar o sync de notas.
-      let matriculas = [];
+      // STEP E — complemento opcional: ?tab=locais_aula_aluno só acrescenta o
+      // professor (e confirma a carga horária). Se esta página mudar de forma
+      // ou sair do ar, o horário continua funcionando — só perde o desempate
+      // por professor quando a mesma disciplina aparece em várias turmas.
       try {
         const urlHorario = `${SUAP_BASE}/edu/aluno/${encodeURIComponent(matricula)}/?tab=locais_aula_aluno`;
         const respHorario = await fetch(urlHorario, { headers: headersBoletim });
-        if (respHorario.ok) matriculas = parseHorarioPagina(await respHorario.text());
+        if (respHorario.ok) {
+          const detalhes = parseHorarioPagina(await respHorario.text());
+          const porId = new Map(detalhes.map((d) => [d.encId, d]));
+          for (const c of cursando) {
+            const d = porId.get(c.encId);
+            if (!d) continue;
+            c.professor = d.professor || c.professor;
+            c.cargaHoraria = c.cargaHoraria || d.cargaHoraria;
+            c.diario = c.diario || d.diario;
+          }
+        }
       } catch {
-        matriculas = [];
+        // segue sem professor — o casamento por nome ainda resolve a maioria
       }
 
-      // STEP F — horário de relógio pela grade OFICIAL do campus (EduPage).
-      // Os códigos do SUAP ("3V56") não dizem a hora; a grade de sinos que
+      // STEP F — horário de relógio SOMENTE pela grade oficial do campus.
+      // Os códigos do SUAP ("3V56") não dizem a hora, e a grade de sinos que
       // circula erra em até 1h20 (Redes na quinta é 15:35, não 16:55). O
       // EduPage é público e traz turma + professor, então dá pra casar com
-      // segurança. Só entra no horário o que a grade oficial publicou.
+      // segurança. Disciplina que a grade não publicou fica de fora — e é
+      // reportada em horarioMeta.naoEncontradas, nunca descartada em silêncio.
       let horario = [];
-      let horarioMeta = { fonte: "suap", naoEncontradas: [] };
-      if (matriculas.length) {
+      let horarioMeta = { fonte: "nenhuma", grade: "", naoEncontradas: [] };
+      if (cursando.length) {
         try {
           const { ttNum, texto } = await descobrirTimetable();
           const grade = lerGrade(await baixarGrade(ttNum));
-          const { horario: casado, naoEncontradas } = casarHorario(matriculas, grade);
+          const { horario: casado, naoEncontradas } = casarHorario(cursando, grade);
           horario = casado;
           horarioMeta = { fonte: "edupage", grade: texto, naoEncontradas };
         } catch {
-          // EduPage fora do ar: cai para os códigos do SUAP, que ao menos
-          // acertam o dia e a ordem das aulas.
-          horario = matriculas;
-          horarioMeta = { fonte: "suap", naoEncontradas: [] };
+          // EduPage indisponível: sem horário. Não inventamos a partir do
+          // SUAP — foi decisão explícita que o horário só vem da grade
+          // oficial. A UI cai no SCHEDULE estático e avisa.
+          horarioMeta = {
+            fonte: "indisponivel",
+            grade: "",
+            naoEncontradas: cursando.map((c) => ({
+              encId: c.encId, nome: c.nome, motivo: "grade oficial indisponível",
+            })),
+          };
         }
       }
 

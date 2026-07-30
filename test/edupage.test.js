@@ -122,4 +122,43 @@ test("sem grade do EduPage, nada é inventado", () => {
   const { horario: vazio, naoEncontradas: todas } = casarHorario(MATRICULAS, []);
   assert.deepEqual(vazio, []);
   assert.equal(todas.length, MATRICULAS.length);
+  assert.ok(todas.every(n => n.motivo === "ausente na grade"));
+});
+
+// ⚠ Só vale quando o nome é único NA GRADE INTEIRA. Na grade real do campus
+// (1300+ aulas) quase toda disciplina aparece em várias turmas, e sem
+// professor nada casa — conferido ao vivo. Por isso ?tab=locais_aula_aluno,
+// que fornece o professor, é parte necessária do fluxo e não um extra.
+test("nome único na grade resolve mesmo sem professor", () => {
+  const semProf = MATRICULAS.map(m => ({ ...m, professor: "" }));
+  const { horario: h } = casarHorario(semProf, grade);
+  assert.deepEqual(h.map(x => x.encId).sort(), ["ENC-39", "ENC-40", "ENC-42", "ENC-55", "ENC-56"]);
+});
+
+test("disciplina em várias turmas: a turma do aluno desempata sem professor", () => {
+  // Duas ofertas de Redes; só uma é da turma que o resto das disciplinas usa.
+  const gradeAmbigua = [
+    ...grade,
+    { nome: "Redes de Computadores", professores: ["Outro Professor"],
+      turmas: ["DCOM 7844.9 Engenh. Comput."],
+      periodos: [{ dia: 6, inicio: 8 * 60, fim: 8 * 60 + 45 }] },
+  ];
+  const semProf = MATRICULAS.map(m => ({ ...m, professor: "" }));
+  const { horario: h } = casarHorario(semProf, gradeAmbigua);
+  const redes = h.find(x => x.encId === "ENC-42");
+  assert.ok(redes, "Redes deveria ter sido resolvida pela turma");
+  assert.match(redes.turma, /7844\.6/);
+});
+
+test("ambiguidade insolúvel é reportada, não chutada", () => {
+  const gradeAmbigua = [
+    { nome: "Redes de Computadores", professores: ["A A"], turmas: ["X 1"], periodos: [{ dia: 2, inicio: 780, fim: 825 }] },
+    { nome: "Redes de Computadores", professores: ["B B"], turmas: ["Y 2"], periodos: [{ dia: 3, inicio: 780, fim: 825 }] },
+  ];
+  const { horario: h, naoEncontradas: ne } = casarHorario(
+    [{ encId: "ENC-42", nome: "Redes de Computadores", professor: "", cargaHoraria: 80 }],
+    gradeAmbigua
+  );
+  assert.deepEqual(h, []);
+  assert.match(ne[0].motivo, /sem professor para desempatar/);
 });

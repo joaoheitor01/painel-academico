@@ -188,23 +188,56 @@ function blocosPorDia(spans) {
  * explícita: horário 100% da grade oficial, sem completar com o SUAP.
  */
 export function casarHorario(matriculas, grade) {
-  const horario = [];
-  const naoEncontradas = [];
-
-  for (const m of matriculas) {
+  // Passo 1 — casa por nome. Nome único resolve na hora; havendo várias
+  // turmas com a mesma disciplina, o professor desempata.
+  const pendentes = matriculas.map((m) => {
     const candidatos = grade.filter((g) => normalizar(g.nome) === normalizar(m.nome));
-
     let escolhido = null;
     if (candidatos.length === 1) {
       escolhido = candidatos[0];
-    } else if (candidatos.length > 1) {
-      // Mesma disciplina em várias turmas: o professor desempata.
+    } else if (candidatos.length > 1 && m.professor) {
       escolhido =
         candidatos.find((c) => c.professores.some((p) => mesmoProfessor(p, m.professor))) || null;
     }
+    return { m, candidatos, escolhido };
+  });
+
+  // Passo 2 — a turma do aluno é a que mais aparece entre o que já resolveu.
+  // Serve para desempatar o resto sem depender do professor (que só vem da
+  // página de locais de aula, opcional).
+  const votos = new Map();
+  for (const p of pendentes) {
+    if (!p.escolhido) continue;
+    for (const t of p.escolhido.turmas) votos.set(t, (votos.get(t) || 0) + 1);
+  }
+  const turmasDoAluno = new Set(
+    [...votos.entries()]
+      .filter(([, n]) => n >= 2) // uma coincidência só não define turma
+      .map(([t]) => t)
+  );
+
+  const horario = [];
+  const naoEncontradas = [];
+
+  for (const p of pendentes) {
+    let { m, candidatos, escolhido } = p;
+
+    if (!escolhido && candidatos.length > 1 && turmasDoAluno.size) {
+      const porTurma = candidatos.filter((c) => c.turmas.some((t) => turmasDoAluno.has(t)));
+      if (porTurma.length === 1) escolhido = porTurma[0];
+    }
 
     if (!escolhido) {
-      naoEncontradas.push({ encId: m.encId, nome: m.nome, motivo: candidatos.length ? "professor não bateu" : "ausente na grade" });
+      naoEncontradas.push({
+        encId: m.encId,
+        nome: m.nome,
+        motivo:
+          candidatos.length === 0
+            ? "ausente na grade"
+            : m.professor
+              ? "várias turmas e nenhuma bate com o professor"
+              : "várias turmas e sem professor para desempatar",
+      });
       continue;
     }
 
@@ -213,7 +246,7 @@ export function casarHorario(matriculas, grade) {
       codigo: m.codigo,
       encId: m.encId,
       nome: m.nome,
-      professor: escolhido.professores[0] || m.professor,
+      professor: escolhido.professores[0] || m.professor || "",
       turma: escolhido.turmas[0] || "",
       cargaHoraria: m.cargaHoraria, // do SUAP: o EduPage não tem o total do semestre
       fonte: "edupage",

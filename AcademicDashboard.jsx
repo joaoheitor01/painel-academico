@@ -177,7 +177,7 @@ function layoutDay(blocks) {
   return out;
 }
 
-function TabHorario({ schedule, colors, meta }) {
+function TabHorario({ schedule, colors, meta, onOpenSuap }) {
   const now = new Date();
   const dow = now.getDay(); // 0 dom .. 6 sáb
   const initialDay = dow >= 1 && dow <= 5 ? dow - 1 : 0;
@@ -205,6 +205,8 @@ function TabHorario({ schedule, colors, meta }) {
 
   // Estatísticas do rodapé: derivadas do horário real, não mais chumbadas.
   const faltando = meta?.naoEncontradas || [];
+  // Nunca sincronizou: não existe horário chumbado para mostrar no lugar.
+  const semHorario = schedule.every(d => d.blocks.length === 0);
   const carga = (d) => d.blocks.reduce((x, b) => x + b.aulas, 0);
   const comAula = schedule.filter(d => d.blocks.length > 0);
   const maisPesado = comAula.reduce((a, d) => (!a || carga(d) > carga(a) ? d : a), null);
@@ -218,9 +220,27 @@ function TabHorario({ schedule, colors, meta }) {
         <p className="text-[13px] text-[#6D6D72] mt-0.5">{weekLabel}</p>
       </div>
 
+      {/* Nunca sincronizou. Antes havia um horário chumbado no repo aqui — que
+          era o de UMA pessoa, mostrado a todos os colegas, e desatualizava a
+          cada nova versão da grade. Melhor não mostrar nada. */}
+      {semHorario && (
+        <div className="mx-4 mt-3 bg-white rounded-2xl px-4 py-10 text-center shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center mx-auto mb-3">
+            <Calendar size={22} className="text-violet-600" />
+          </div>
+          <p className="text-sm text-[#6D6D72] mb-4">
+            Sincronize com o SUAP para carregar o seu horário<br />da grade oficial do campus.
+          </p>
+          <button onClick={onOpenSuap}
+            className="inline-flex items-center gap-2 bg-violet-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
+            <RefreshCw size={15} /> Sincronizar SUAP
+          </button>
+        </div>
+      )}
+
       {/* Disciplina que a grade oficial ainda não publicou. Aparece na tela de
           propósito: sumir em silêncio foi exatamente o bug de 2026/1. */}
-      {faltando.length > 0 && (
+      {!semHorario && faltando.length > 0 && (
         <div className="mx-4 mt-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex gap-3 items-start">
           <span className="text-lg leading-none">⚠</span>
           <div>
@@ -236,6 +256,7 @@ function TabHorario({ schedule, colors, meta }) {
       )}
 
       {/* DAY SELECTOR */}
+      {!semHorario && (
       <div className="px-4 pb-3 bg-white border-b border-gray-100">
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {schedule.map((d, i) => (
@@ -247,9 +268,10 @@ function TabHorario({ schedule, colors, meta }) {
           ))}
         </div>
       </div>
+      )}
 
       {/* CALENDAR */}
-      {day.blocks.length === 0 ? (
+      {semHorario ? null : day.blocks.length === 0 ? (
         <div className="mx-4 mt-3 bg-white rounded-2xl py-16 text-center text-[#6D6D72] shadow-sm">
           Sem aulas neste dia 📚
         </div>
@@ -301,7 +323,7 @@ function TabHorario({ schedule, colors, meta }) {
       )}
 
       {/* FOOTER STATS */}
-      <div className="mx-4 mt-3 mb-2 flex flex-wrap gap-2">
+      <div className={`mx-4 mt-3 mb-2 flex flex-wrap gap-2 ${semHorario ? "hidden" : ""}`}>
         {[
           `📅 ${comAula.length} dia${comAula.length === 1 ? "" : "s"} com aula`,
           `📚 ${totalAulas} aulas/semana`,
@@ -1095,7 +1117,7 @@ function Dashboard({ userKey, displayName, onLogout }) {
         <main className="flex-1 overflow-y-auto pb-20 lg:pb-10">
           <div className="lg:max-w-5xl lg:mx-auto lg:w-full">
             {tab === "geral"   && <TabGeral subjects={subjects} stats={stats} doneSubs={doneSubs} attendanceMeta={attendanceMeta} />}
-            {tab === "horario" && <TabHorario schedule={schedule} colors={subjectColors} meta={horarioMeta} />}
+            {tab === "horario" && <TabHorario schedule={schedule} colors={subjectColors} meta={horarioMeta} onOpenSuap={() => setSuapModal(true)} />}
             {tab === "notas"   && <TabNotas subjects={subjects} faltas={faltas} setFaltas={setFaltas} notas={notas} onOpenSuap={() => setSuapModal(true)} attendanceMeta={attendanceMeta} />}
             {tab === "mais" && mais === null && (
               <TabMais displayName={displayName}
