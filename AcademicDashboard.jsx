@@ -14,7 +14,8 @@ import {
   scheduleClassReminders, checkAttendanceAlerts,
 } from "./notifications";
 import {
-  DEFAULT_SUBJECTS, CURRICULUM_PERIODS, ATTENDANCE_META, SCHEDULE, SUBJECT_COLORS,
+  DEFAULT_SUBJECTS, CURRICULUM_PERIODS, ATTENDANCE_META, SCHEDULE,
+  buildSchedule, buildAttendanceMeta, buildSubjectColors,
   STATUS, STATUS_ORDER, fmtTime, DAY_START, DAY_END,
   getCascadeCount, calcAbsence,
 } from "./curriculumData";
@@ -24,8 +25,8 @@ const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho",
   "Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
 // RF = reprovado por falta (danger). Usa a lógica intacta de calcAbsence.
-function absState(id, faltas) {
-  const meta = ATTENDANCE_META[id];
+// `meta` vem do horário sincronizado do aluno (ou do fallback estático).
+function absState(meta, faltas) {
   if (!meta) return null;
   return calcAbsence(meta, faltas);
 }
@@ -46,7 +47,7 @@ function CourseHeader({ title, subtitle = "Engenharia de Computação · IFMT", 
 }
 
 // ─── FASE 2 · TAB GERAL ─────────────────────────────────────────────────────────
-function TabGeral({ subjects, stats, doneSubs }) {
+function TabGeral({ subjects, stats, doneSubs, attendanceMeta }) {
   const current = subjects.filter(s => s.status === "current");
   const nextCount   = subjects.filter(s => s.status === "next").length;
   const futureCount = subjects.filter(s => s.status === "future").length;
@@ -103,7 +104,7 @@ function TabGeral({ subjects, stats, doneSubs }) {
             </div>
           )}
           {current.map(s => {
-            const st = absState(s.id, s.faltas);
+            const st = absState(attendanceMeta[s.id], s.faltas);
             const rf = st?.state === "danger";
             return (
               <div key={s.id} className="bg-white rounded-2xl px-4 py-3 shadow-sm">
@@ -112,7 +113,7 @@ function TabGeral({ subjects, stats, doneSubs }) {
                   <span className="text-[15px] font-bold text-[#1C1C1E] leading-snug flex-1">{s.name}</span>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 shrink-0">{s.id}</span>
                 </div>
-                <p className="text-xs text-[#6D6D72] mt-1 pl-4">Cursando · 2026/1</p>
+                <p className="text-xs text-[#6D6D72] mt-1 pl-4">Cursando · 2026/2</p>
                 {rf && (
                   <div className="mt-2 rounded-lg bg-red-50 text-[#FF3B30] text-xs px-3 py-1.5">
                     ⚠ Limite de faltas atingido
@@ -176,7 +177,7 @@ function layoutDay(blocks) {
   return out;
 }
 
-function TabHorario() {
+function TabHorario({ schedule, colors, meta, onOpenSuap }) {
   const now = new Date();
   const dow = now.getDay(); // 0 dom .. 6 sáb
   const initialDay = dow >= 1 && dow <= 5 ? dow - 1 : 0;
@@ -186,8 +187,9 @@ function TabHorario() {
   const friday = new Date(monday); friday.setDate(monday.getDate() + 4);
   const weekLabel = `Semana de ${monday.getDate()} a ${friday.getDate()} de ${MESES[friday.getMonth()]}`;
 
-  const day = SCHEDULE[dayIdx];
-  const laid = useMemo(() => layoutDay(day.blocks), [dayIdx]);
+  // O horário vem do SUAP e pode ter menos dias que o índice guardado.
+  const day = schedule[Math.min(dayIdx, schedule.length - 1)] || { blocks: [] };
+  const laid = useMemo(() => layoutDay(day.blocks), [day]);
   const intervals = day.blocks.flatMap(b => (b.intervals || []).map(iv => ({ ...iv, key: `${b.id}-${iv.start}` })));
 
   // Janela do dia: só o intervalo com aula (evita horas vazias no fim do dia).
@@ -197,9 +199,18 @@ function TabHorario() {
   const OFFSET = 14; // respiro no topo/base pra não cortar os rótulos de hora
   const hours = [];
   for (let m = winStart; m <= winEnd; m += 60) hours.push(m);
-  const totalAulas = SCHEDULE.reduce((a, d) => a + d.blocks.reduce((x, b) => x + b.aulas, 0), 0);
+  const totalAulas = schedule.reduce((a, d) => a + d.blocks.reduce((x, b) => x + b.aulas, 0), 0);
   const px = (min) => (min - winStart) + OFFSET; // 1px por minuto = 60px por hora
   const gridHeight = (winEnd - winStart) + OFFSET * 2;
+
+  // Estatísticas do rodapé: derivadas do horário real, não mais chumbadas.
+  const faltando = meta?.naoEncontradas || [];
+  // Nunca sincronizou: não existe horário chumbado para mostrar no lugar.
+  const semHorario = schedule.every(d => d.blocks.length === 0);
+  const carga = (d) => d.blocks.reduce((x, b) => x + b.aulas, 0);
+  const comAula = schedule.filter(d => d.blocks.length > 0);
+  const maisPesado = comAula.reduce((a, d) => (!a || carga(d) > carga(a) ? d : a), null);
+  const maisLeve   = comAula.reduce((a, d) => (!a || carga(d) < carga(a) ? d : a), null);
 
   return (
     <div>
@@ -209,10 +220,46 @@ function TabHorario() {
         <p className="text-[13px] text-[#6D6D72] mt-0.5">{weekLabel}</p>
       </div>
 
+      {/* Nunca sincronizou. Antes havia um horário chumbado no repo aqui — que
+          era o de UMA pessoa, mostrado a todos os colegas, e desatualizava a
+          cada nova versão da grade. Melhor não mostrar nada. */}
+      {semHorario && (
+        <div className="mx-4 mt-3 bg-white rounded-2xl px-4 py-10 text-center shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center mx-auto mb-3">
+            <Calendar size={22} className="text-violet-600" />
+          </div>
+          <p className="text-sm text-[#6D6D72] mb-4">
+            Sincronize com o SUAP para carregar o seu horário<br />da grade oficial do campus.
+          </p>
+          <button onClick={onOpenSuap}
+            className="inline-flex items-center gap-2 bg-violet-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
+            <RefreshCw size={15} /> Sincronizar SUAP
+          </button>
+        </div>
+      )}
+
+      {/* Disciplina que a grade oficial ainda não publicou. Aparece na tela de
+          propósito: sumir em silêncio foi exatamente o bug de 2026/1. */}
+      {!semHorario && faltando.length > 0 && (
+        <div className="mx-4 mt-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex gap-3 items-start">
+          <span className="text-lg leading-none">⚠</span>
+          <div>
+            <p className="text-sm font-bold text-amber-700">
+              {faltando.length === 1 ? "1 disciplina fora da grade" : `${faltando.length} disciplinas fora da grade`}
+            </p>
+            <p className="text-xs text-[#6D6D72] mt-0.5">
+              {faltando.map(f => f.nome).join(" · ")} — você está matriculado, mas o
+              IFMT ainda não publicou o horário no quadro oficial.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* DAY SELECTOR */}
+      {!semHorario && (
       <div className="px-4 pb-3 bg-white border-b border-gray-100">
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
-          {SCHEDULE.map((d, i) => (
+          {schedule.map((d, i) => (
             <button key={d.dayShort} onClick={() => setDayIdx(i)}
               className={`shrink-0 px-4 py-2 rounded-xl font-bold text-sm transition-colors ${
                 i === dayIdx ? "bg-violet-600 text-white" : "bg-gray-100 text-gray-500"}`}>
@@ -221,9 +268,10 @@ function TabHorario() {
           ))}
         </div>
       </div>
+      )}
 
       {/* CALENDAR */}
-      {day.blocks.length === 0 ? (
+      {semHorario ? null : day.blocks.length === 0 ? (
         <div className="mx-4 mt-3 bg-white rounded-2xl py-16 text-center text-[#6D6D72] shadow-sm">
           Sem aulas neste dia 📚
         </div>
@@ -253,7 +301,7 @@ function TabHorario() {
               ))}
               {/* blocos */}
               {laid.map(b => {
-                const c = SUBJECT_COLORS[b.id] || {};
+                const c = colors[b.id] || {};
                 const width = 100 / b._cols;
                 return (
                   <div key={b.key}
@@ -275,12 +323,12 @@ function TabHorario() {
       )}
 
       {/* FOOTER STATS */}
-      <div className="mx-4 mt-3 mb-2 flex flex-wrap gap-2">
+      <div className={`mx-4 mt-3 mb-2 flex flex-wrap gap-2 ${semHorario ? "hidden" : ""}`}>
         {[
-          `📅 5 dias com aula`,
+          `📅 ${comAula.length} dia${comAula.length === 1 ? "" : "s"} com aula`,
           `📚 ${totalAulas} aulas/semana`,
-          `🔴 Seg — mais pesado`,
-          `🟢 Qua — mais leve`,
+          ...(maisPesado ? [`🔴 ${maisPesado.dayShort} — mais pesado`] : []),
+          ...(maisLeve && maisLeve !== maisPesado ? [`🟢 ${maisLeve.dayShort} — mais leve`] : []),
         ].map(txt => (
           <span key={txt} className="bg-white rounded-full px-3 py-1.5 text-xs font-medium text-[#1C1C1E] shadow-sm">{txt}</span>
         ))}
@@ -290,8 +338,7 @@ function TabHorario() {
 }
 
 // ─── FASE 4 · TAB NOTAS ──────────────────────────────────────────────────────────
-function AbsenceCardMobile({ subject, faltas, onSetFaltas }) {
-  const meta = ATTENDANCE_META[subject.id];
+function AbsenceCardMobile({ subject, meta, faltas, onSetFaltas }) {
   const { limite, restam, pct, state } = calcAbsence(meta, faltas);
   const rf = state === "danger";
   const warn = state === "warning" || pct > 75;
@@ -347,11 +394,11 @@ function notaBadge(media) {
   return { cls: "bg-red-50 text-red-700", label: "✗ Reprovado" };
 }
 
-function NotaCardMobile({ subject, nota, faltas }) {
+function NotaCardMobile({ subject, meta, nota, faltas }) {
   const n = nota || { p1: "-", media: "-", af: "-", mfd: "-" };
   const badge = notaBadge(n.media);
   const mediaNum = parseFloat(n.media);
-  const st = absState(subject.id, faltas);
+  const st = absState(meta, faltas);
   const topBorder = st?.state === "danger" ? "bg-red-500"
     : (!Number.isNaN(mediaNum) && mediaNum >= 4 && mediaNum < 6) ? "bg-amber-400"
     : "bg-gray-200";
@@ -379,10 +426,10 @@ function NotaCardMobile({ subject, nota, faltas }) {
   );
 }
 
-function TabNotas({ subjects, faltas, setFaltas, notas, onOpenSuap }) {
+function TabNotas({ subjects, faltas, setFaltas, notas, onOpenSuap, attendanceMeta }) {
   const [view, setView] = useState("freq");
-  const currentSubs = subjects.filter(s => s.status === "current" && ATTENDANCE_META[s.id]);
-  const rfSubs = currentSubs.filter(s => absState(s.id, faltas[s.id] || 0)?.state === "danger");
+  const currentSubs = subjects.filter(s => s.status === "current" && attendanceMeta[s.id]);
+  const rfSubs = currentSubs.filter(s => absState(attendanceMeta[s.id], faltas[s.id] || 0)?.state === "danger");
   const temNotas = Object.keys(notas || {}).length > 0;
   const notaSubs = subjects.filter(s => s.status === "current");
 
@@ -423,7 +470,7 @@ function TabNotas({ subjects, faltas, setFaltas, notas, onOpenSuap }) {
             <>
               <div className="mx-4 mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {currentSubs.map(s => (
-                  <AbsenceCardMobile key={s.id} subject={s}
+                  <AbsenceCardMobile key={s.id} subject={s} meta={attendanceMeta[s.id]}
                     faltas={faltas[s.id] || 0}
                     onSetFaltas={(v) => setFaltas(prev => ({ ...prev, [s.id]: v }))} />
                 ))}
@@ -442,7 +489,7 @@ function TabNotas({ subjects, faltas, setFaltas, notas, onOpenSuap }) {
                   </thead>
                   <tbody>
                     {currentSubs.map((s, i) => {
-                      const meta = ATTENDANCE_META[s.id];
+                      const meta = attendanceMeta[s.id];
                       const f = faltas[s.id] || 0;
                       const { limite, state } = calcAbsence(meta, f);
                       const rf = state === "danger";
@@ -481,7 +528,7 @@ function TabNotas({ subjects, faltas, setFaltas, notas, onOpenSuap }) {
         ) : (
           <div className="mx-4 mt-3 mb-2 grid grid-cols-1 lg:grid-cols-2 gap-3">
             {notaSubs.map(s => (
-              <NotaCardMobile key={s.id} subject={s} nota={notas[s.id]} faltas={faltas[s.id] || 0} />
+              <NotaCardMobile key={s.id} subject={s} meta={attendanceMeta[s.id]} nota={notas[s.id]} faltas={faltas[s.id] || 0} />
             ))}
           </div>
         )
@@ -842,8 +889,8 @@ function SobreSheet({ onClose }) {
         <h2 className="text-[20px] font-bold text-[#1C1C1E] text-center">Dashboard Acadêmico</h2>
         <p className="text-sm text-[#6D6D72] text-center mt-1">Engenharia de Computação · IFMT</p>
         <div className="mt-4 flex flex-col gap-2 text-sm text-[#6D6D72]">
-          <div className="flex justify-between"><span>Versão</span><span className="text-[#1C1C1E] font-medium">2026.1</span></div>
-          <div className="flex justify-between"><span>Turma</span><span className="text-[#1C1C1E] font-medium">ENC 2026/1</span></div>
+          <div className="flex justify-between"><span>Versão</span><span className="text-[#1C1C1E] font-medium">2026.2</span></div>
+          <div className="flex justify-between"><span>Turma</span><span className="text-[#1C1C1E] font-medium">ENC 2026/2</span></div>
         </div>
         <p className="text-xs text-[#6D6D72] text-center mt-4">Feito por e para estudantes. Dados locais no seu navegador.</p>
         <button onClick={onClose}
@@ -862,6 +909,8 @@ function Dashboard({ userKey, displayName, onLogout }) {
   const [faltas, setFaltas] = useState({});
   const [statusOverrides, setStatusOverrides] = useState({});
   const [notas, setNotas] = useState({});
+  const [horario, setHorario] = useState([]);
+  const [horarioMeta, setHorarioMeta] = useState(null);
   const [hydratedFor, setHydratedFor] = useState(null);
   const [suapModal, setSuapModal] = useState(false);
   const [sobreModal, setSobreModal] = useState(false);
@@ -879,6 +928,8 @@ function Dashboard({ userKey, displayName, onLogout }) {
         setFaltas(data.faltas);
         setStatusOverrides(data.statusOverrides);
         setNotas(data.notas);
+        setHorario(data.horario);
+        setHorarioMeta(data.horarioMeta);
         setHydratedFor(userKey);
       })
       .catch(() => {
@@ -890,15 +941,31 @@ function Dashboard({ userKey, displayName, onLogout }) {
 
   useEffect(() => {
     if (hydratedFor !== userKey) return;
-    void saveUserData(userKey, { faltas, statusOverrides, notas });
-  }, [hydratedFor, userKey, faltas, statusOverrides, notas]);
+    void saveUserData(userKey, { faltas, statusOverrides, notas, horario, horarioMeta });
+  }, [hydratedFor, userKey, faltas, statusOverrides, notas, horario, horarioMeta]);
+
+  // Horário e carga horária saem do SUAP (por aluno). Enquanto a conta não
+  // sincronizou, buildSchedule/buildAttendanceMeta caem no fallback estático.
+  const schedule = useMemo(
+    () => (horario?.length ? buildSchedule(horario) : SCHEDULE),
+    [horario]
+  );
+  const attendanceMeta = useMemo(
+    () => (horario?.length ? buildAttendanceMeta(horario) : ATTENDANCE_META),
+    [horario]
+  );
+  // Cor por índice sobre a paleta — serve qualquer conjunto de disciplinas.
+  const subjectColors = useMemo(
+    () => buildSubjectColors(schedule.flatMap(d => d.blocks.map(b => b.id))),
+    [schedule]
+  );
 
   // Reagenda lembretes de aula e reavalia alertas de falta ao carregar/mudar faltas.
   useEffect(() => {
     if (hydratedFor !== userKey) return;
-    scheduleClassReminders(SCHEDULE);
-    checkAttendanceAlerts(ATTENDANCE_META, faltas);
-  }, [hydratedFor, userKey, faltas]);
+    scheduleClassReminders(schedule);
+    checkAttendanceAlerts(attendanceMeta, faltas);
+  }, [hydratedFor, userKey, faltas, schedule, attendanceMeta]);
 
   const subjects = useMemo(() => DEFAULT_SUBJECTS.map(s => ({
     ...s,
@@ -926,7 +993,7 @@ function Dashboard({ userKey, displayName, onLogout }) {
 
   // Badge de alerta na tab Notas: alguma disciplina em RF ou > 75% do limite.
   const notasAlert = subjects.some(s => {
-    const st = absState(s.id, s.faltas);
+    const st = absState(attendanceMeta[s.id], s.faltas);
     return s.status === "current" && st && (st.state === "danger" || st.pct >= 75);
   });
 
@@ -965,6 +1032,10 @@ function Dashboard({ userKey, displayName, onLogout }) {
       setFaltas(prev => ({ ...prev, ...data.faltas }));
       setStatusOverrides(prev => ({ ...prev, ...data.statusOverrides }));
       setNotas(prev => ({ ...prev, ...(data.notas || {}) }));
+      // Horário é substituído, não mesclado: é a foto do período atual.
+      // Worker antigo (sem STEP E) não manda o campo — aí preserva o que havia.
+      if (Array.isArray(data.horario)) setHorario(data.horario);
+      if (data.horarioMeta !== undefined) setHorarioMeta(data.horarioMeta);
       setSuapModal(false);
 
       // Após o 1º sync, oferece ativar notificações (se ainda não decidiu).
@@ -972,8 +1043,8 @@ function Dashboard({ userKey, displayName, onLogout }) {
         const perm = await requestNotificationPermission();
         setNotifPermission(perm);
         if (perm === "granted") {
-          scheduleClassReminders(SCHEDULE);
-          checkAttendanceAlerts(ATTENDANCE_META, { ...faltas, ...data.faltas });
+          scheduleClassReminders(buildSchedule(data.horario));
+          checkAttendanceAlerts(buildAttendanceMeta(data.horario), { ...faltas, ...data.faltas });
         }
       }
     } catch (err) {
@@ -999,8 +1070,8 @@ function Dashboard({ userKey, displayName, onLogout }) {
     const perm = await requestNotificationPermission();
     setNotifPermission(perm);
     if (perm === "granted") {
-      scheduleClassReminders(SCHEDULE);
-      checkAttendanceAlerts(ATTENDANCE_META, faltas);
+      scheduleClassReminders(schedule);
+      checkAttendanceAlerts(attendanceMeta, faltas);
     }
   }
 
@@ -1045,9 +1116,9 @@ function Dashboard({ userKey, displayName, onLogout }) {
       <div className="min-h-screen flex flex-col max-w-[430px] mx-auto lg:max-w-none lg:mx-0 lg:ml-64 lg:flex-1 relative">
         <main className="flex-1 overflow-y-auto pb-20 lg:pb-10">
           <div className="lg:max-w-5xl lg:mx-auto lg:w-full">
-            {tab === "geral"   && <TabGeral subjects={subjects} stats={stats} doneSubs={doneSubs} />}
-            {tab === "horario" && <TabHorario />}
-            {tab === "notas"   && <TabNotas subjects={subjects} faltas={faltas} setFaltas={setFaltas} notas={notas} onOpenSuap={() => setSuapModal(true)} />}
+            {tab === "geral"   && <TabGeral subjects={subjects} stats={stats} doneSubs={doneSubs} attendanceMeta={attendanceMeta} />}
+            {tab === "horario" && <TabHorario schedule={schedule} colors={subjectColors} meta={horarioMeta} onOpenSuap={() => setSuapModal(true)} />}
+            {tab === "notas"   && <TabNotas subjects={subjects} faltas={faltas} setFaltas={setFaltas} notas={notas} onOpenSuap={() => setSuapModal(true)} attendanceMeta={attendanceMeta} />}
             {tab === "mais" && mais === null && (
               <TabMais displayName={displayName}
                 notifPermission={notifPermission}

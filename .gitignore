@@ -6,6 +6,7 @@ dist/
 worker/.wrangler/
 worker/.dev.vars
 worker/node_modules/
+.wrangler/
 
 # Saída do scraper edupage (scrape-edupage.mjs)
 timetable-raw.json
