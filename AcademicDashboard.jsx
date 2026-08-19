@@ -245,12 +245,19 @@ function TabHorario({ schedule, colors, meta, onOpenSuap }) {
           <span className="text-lg leading-none">⚠</span>
           <div>
             <p className="text-sm font-bold text-amber-700">
-              {faltando.length === 1 ? "1 disciplina fora da grade" : `${faltando.length} disciplinas fora da grade`}
+              {faltando.length === 1 ? "1 disciplina sem horário" : `${faltando.length} disciplinas sem horário`}
             </p>
-            <p className="text-xs text-[#6D6D72] mt-0.5">
-              {faltando.map(f => f.nome).join(" · ")} — você está matriculado, mas o
-              IFMT ainda não publicou o horário no quadro oficial.
-            </p>
+            {/* O motivo vem do Worker e é mostrado por disciplina: dizer sempre
+                "o IFMT não publicou" era mentira nos casos em que a aula está
+                publicada e quem falhou foi o casamento. */}
+            <ul className="text-xs text-[#6D6D72] mt-1 space-y-0.5">
+              {faltando.map(f => (
+                <li key={f.encId}>
+                  <span className="font-medium text-[#3A3A3C]">{f.nome}</span>
+                  {f.motivo ? ` — ${f.motivo}` : ""}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       )}
