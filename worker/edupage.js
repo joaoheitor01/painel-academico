@@ -161,6 +161,55 @@ export function lerGrade(raw) {
 }
 
 // ─── Casamento SUAP × EduPage ──────────────────────────────────────────────
+
+/** Turno de um horário de relógio, na convenção do SUAP (M/V/N). */
+const turnoDoMinuto = (min) => (min < 12 * 60 ? "M" : min < 18 * 60 ? "V" : "N");
+
+const chaveEncontro = (dia, turno) => `${dia}|${turno}`;
+
+/** Em que "dia|turno" a oferta do EduPage tem aula. */
+function encontrosDaGrade(oferta) {
+  return new Set(oferta.periodos.map((p) => chaveEncontro(p.dia, turnoDoMinuto(p.inicio))));
+}
+
+/**
+ * O código do SUAP ("6N1234") não diz a hora do sino, mas diz QUAL oferta é a
+ * do aluno — e é o único desempate que funciona quando duas turmas têm a mesma
+ * disciplina COM O MESMO PROFESSOR. Caso real de 2026/2: Jorge Monsalve dá
+ * Equações Diferenciais na Computação (terça e sexta à tarde) e na Civil
+ * (sexta à noite); nome e professor são idênticos, só o turno separa.
+ */
+function compativelComSuap(oferta, blocos) {
+  if (!blocos || blocos.length === 0) return true; // sem código do SUAP, não filtra
+  const daGrade = encontrosDaGrade(oferta);
+  return blocos.every((b) => daGrade.has(chaveEncontro(b.dia, b.turno)));
+}
+
+/**
+ * Um nome contém o outro? O SUAP escreve por extenso ("Análise e Projeto de
+ * Sistemas Computacionais") e o EduPage às vezes encurta ("Análise e Projeto
+ * de Sistemas"). Exige tamanhos diferentes: "Circuitos Elétricos I" e
+ * "Circuitos Elétricos II" têm o mesmo número de tokens e não se confundem.
+ */
+function nomeContido(a, b) {
+  const ta = tokens(a);
+  const tb = tokens(b);
+  if (ta.length < 2 || tb.length < 2 || ta.length === tb.length) return false;
+  const [curto, longo] = ta.length < tb.length ? [ta, tb] : [tb, ta];
+  const set = new Set(longo);
+  return curto.every((t) => set.has(t));
+}
+
+/**
+ * Candidatos de uma matrícula na grade. O nome parcial só entra quando o exato
+ * não achou nada — assim "Redes de Computadores" jamais vira "Fundamentos de
+ * Redes de Computadores", que existe na grade do técnico integrado.
+ */
+function candidatosPorNome(nome, grade) {
+  const exatos = grade.filter((g) => normalizar(g.nome) === normalizar(nome));
+  return exatos.length ? exatos : grade.filter((g) => nomeContido(g.nome, nome));
+}
+
 /**
  * Junta os períodos de uma disciplina em blocos por dia.
  * Slots grudados viram um bloco só; a lacuna fica para a UI virar intervalo.
@@ -188,10 +237,17 @@ function blocosPorDia(spans) {
  * explícita: horário 100% da grade oficial, sem completar com o SUAP.
  */
 export function casarHorario(matriculas, grade) {
-  // Passo 1 — casa por nome. Nome único resolve na hora; havendo várias
-  // turmas com a mesma disciplina, o professor desempata.
+  // Passo 1 — nome, depois dia+turno do SUAP, depois professor.
+  // A ordem importa: na grade real do campus (1300+ aulas) quase nenhuma
+  // disciplina tem nome único, então o filtro do SUAP é quem faz o trabalho.
   const pendentes = matriculas.map((m) => {
-    const candidatos = grade.filter((g) => normalizar(g.nome) === normalizar(m.nome));
+    const porNome = candidatosPorNome(m.nome, grade);
+    const porSuap = porNome.filter((c) => compativelComSuap(c, m.blocos));
+    // Se o SUAP não bate com nenhuma oferta, a grade provavelmente mudou de
+    // dia depois da matrícula: seguimos com os candidatos do nome e deixamos
+    // professor/turma decidirem, em vez de descartar a disciplina.
+    const candidatos = porSuap.length ? porSuap : porNome;
+
     let escolhido = null;
     if (candidatos.length === 1) {
       escolhido = candidatos[0];
@@ -199,44 +255,60 @@ export function casarHorario(matriculas, grade) {
       escolhido =
         candidatos.find((c) => c.professores.some((p) => mesmoProfessor(p, m.professor))) || null;
     }
-    return { m, candidatos, escolhido };
+    return { m, porNome, semCompativel: porNome.length > 0 && porSuap.length === 0, candidatos, escolhido };
   });
 
-  // Passo 2 — a turma do aluno é a que mais aparece entre o que já resolveu.
-  // Serve para desempatar o resto sem depender do professor (que só vem da
-  // página de locais de aula, opcional).
+  // Passo 2 — a turma do aluno sai do que já resolveu, e UM acerto basta.
+  // Exigir dois era o que travava a grade real: com tudo repetido em várias
+  // turmas, costuma sobrar uma única disciplina resolvida sozinha, e o quórum
+  // de dois nunca chegava — derrubando todas as outras em cascata.
   const votos = new Map();
-  for (const p of pendentes) {
-    if (!p.escolhido) continue;
-    for (const t of p.escolhido.turmas) votos.set(t, (votos.get(t) || 0) + 1);
+  const registrar = (oferta) => {
+    for (const t of oferta.turmas) votos.set(t, (votos.get(t) || 0) + 1);
+  };
+  for (const p of pendentes) if (p.escolhido) registrar(p.escolhido);
+
+  /** Quantas disciplinas já resolvidas do aluno estão nesta oferta. */
+  const peso = (oferta) => Math.max(0, ...oferta.turmas.map((t) => votos.get(t) || 0));
+
+  // Resolver por turma pode revelar OUTRA turma do mesmo aluno — dependência
+  // de outro semestre, disciplina cursada em outro departamento. Por isso
+  // repete até parar de progredir, em vez de uma passada só.
+  for (let progrediu = true; progrediu; ) {
+    progrediu = false;
+    for (const p of pendentes) {
+      if (p.escolhido || p.candidatos.length < 2) continue;
+      const daTurma = p.candidatos.filter((c) => peso(c) > 0);
+      if (daTurma.length === 0) continue;
+      // O aluno costuma pertencer a mais de uma turma (a do semestre, a da
+      // dependência). Havendo oferta em duas delas, fica com a principal —
+      // a que aparece em mais disciplinas já resolvidas. Empate não se chuta.
+      const melhor = daTurma.reduce((a, c) => (peso(c) > peso(a) ? c : a));
+      if (daTurma.filter((c) => peso(c) === peso(melhor)).length > 1) continue;
+      p.escolhido = melhor;
+      registrar(melhor);
+      progrediu = true;
+    }
   }
-  const turmasDoAluno = new Set(
-    [...votos.entries()]
-      .filter(([, n]) => n >= 2) // uma coincidência só não define turma
-      .map(([t]) => t)
-  );
 
   const horario = [];
   const naoEncontradas = [];
 
   for (const p of pendentes) {
-    let { m, candidatos, escolhido } = p;
-
-    if (!escolhido && candidatos.length > 1 && turmasDoAluno.size) {
-      const porTurma = candidatos.filter((c) => c.turmas.some((t) => turmasDoAluno.has(t)));
-      if (porTurma.length === 1) escolhido = porTurma[0];
-    }
+    const { m, porNome, semCompativel, escolhido } = p;
 
     if (!escolhido) {
       naoEncontradas.push({
         encId: m.encId,
         nome: m.nome,
         motivo:
-          candidatos.length === 0
+          porNome.length === 0
             ? "ausente na grade"
-            : m.professor
-              ? "várias turmas e nenhuma bate com o professor"
-              : "várias turmas e sem professor para desempatar",
+            : semCompativel
+              ? "nenhuma turma bate com o dia/turno do SUAP"
+              : m.professor
+                ? "várias turmas e nenhuma bate com o professor"
+                : "várias turmas e sem professor para desempatar",
       });
       continue;
     }

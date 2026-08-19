@@ -569,10 +569,11 @@ export default {
         parseBoletimPagina(html, faltas, statusOverrides, notas, false);
       }
 
-      // STEP E — complemento opcional: ?tab=locais_aula_aluno só acrescenta o
-      // professor (e confirma a carga horária). Se esta página mudar de forma
-      // ou sair do ar, o horário continua funcionando — só perde o desempate
-      // por professor quando a mesma disciplina aparece em várias turmas.
+      // STEP E — ?tab=locais_aula_aluno traz professor, carga horária e o
+      // código de horário (dia + turno). Na grade real do campus quase toda
+      // disciplina aparece em várias turmas, então esses dois desempates são
+      // o que faz o casamento funcionar — não são um extra. Se a página sair
+      // do ar, o horário degrada para o casamento por nome e turma.
       try {
         const urlHorario = `${SUAP_BASE}/edu/aluno/${encodeURIComponent(matricula)}/?tab=locais_aula_aluno`;
         const respHorario = await fetch(urlHorario, { headers: headersBoletim });
@@ -585,6 +586,11 @@ export default {
             c.professor = d.professor || c.professor;
             c.cargaHoraria = c.cargaHoraria || d.cargaHoraria;
             c.diario = c.diario || d.diario;
+            // O código ("6N1234" = sexta à noite) não dá a hora do sino, mas
+            // diz qual das ofertas do EduPage é a do aluno. É o único
+            // desempate possível quando o mesmo professor leciona a mesma
+            // disciplina em duas turmas.
+            c.blocos = d.blocos?.length ? d.blocos : c.blocos;
           }
         }
       } catch {
