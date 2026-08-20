@@ -158,11 +158,16 @@ const CODIGO_PARA_ID = {
 };
 
 // "Normal.7433 - Análise e Projeto…" → "Normal.7433" (null se não houver código)
+//
+// O código NÃO está mais garantidamente no começo da célula: em 2026/2 o SUAP
+// passou a rotular os campos ("Componente: Normal.7433 - …"), e ancorar no
+// início fazia extrairCodigo() devolver null para TODA linha da página de
+// locais de aula. Procuramos o código em qualquer posição, sempre exigindo o
+// " - " que separa código de nome — é ele que garante que não é outro número.
+const RE_CODIGO = /(?:^|[\s:;>])([A-Za-z]+\.\d+)\s+-\s+/;
+
 export function extrairCodigo(textoBruto) {
-  const i = (textoBruto || "").indexOf(" - ");
-  if (i === -1) return null;
-  const cod = textoBruto.slice(0, i).trim();
-  return /^[A-Za-z]+\.\d+$/.test(cod) ? cod : null;
+  return (textoBruto || "").match(RE_CODIGO)?.[1] ?? null;
 }
 
 const DIACRITIC_MIN = 0x0300;
@@ -367,19 +372,33 @@ function pareceHorario(txt) {
   return partes.length > 0 && partes.every((p) => RE_BLOCO.test(p));
 }
 
+// Desde 2026/2 o professor vem DENTRO da célula do componente, num <dl>:
+//   "Componente: Normal.1654 - Equações… [68 h/80 Aulas] Professor: Jorge …"
+// A coluna "Professor" separada deixou de existir — e o que ficou no lugar
+// dela foi "Local", que é texto e enganava o fallback posicional.
+const RE_PROFESSOR = /\bProfessor(?:e?s)?\s*:\s*(.+)$/i;
+
 /**
- * "Normal.7433 - Análise e Projeto… - Graduação [68 h/80 Aulas]"
- *   → { codigo, nome, cargaHoraria }
+ * "Normal.7433 - Análise e Projeto… - Graduação [68 h/80 Aulas]", com ou sem
+ * os rótulos "Componente:" / "Professor:" → { codigo, nome, cargaHoraria, professor }
  */
 function parseComponente(txt) {
-  const codigo = extrairCodigo(txt);
-  if (!codigo) return null;
-  const resto = txt.slice(txt.indexOf(" - ") + 3);
+  const m = (txt || "").match(RE_CODIGO);
+  if (!m) return null;
+  const codigo = m[1];
+  let resto = txt.slice(m.index + m[0].length);
+
+  // O professor, quando embutido, vem depois do nome — corta antes de ler o
+  // resto, senão "Professor: Jorge Mauricio Jaramillo" entra no nome.
+  const mProf = resto.match(RE_PROFESSOR);
+  const professor = mProf ? mProf[1].replace(/\s+/g, " ").trim() : "";
+  if (mProf) resto = resto.slice(0, mProf.index);
+
   const cargaHoraria = Number(resto.match(RE_CARGA)?.[1] || 0);
   // Tira o "[68 h/80 Aulas]" e o sufixo de modalidade (" - Graduação").
   const nome = resto.replace(/\[[^\]]*\]/g, "").split(" - ")[0].replace(/\s+/g, " ").trim();
   if (!nome) return null;
-  return { codigo, nome, cargaHoraria };
+  return { codigo, nome, cargaHoraria, professor };
 }
 
 export function parseHorarioPagina(html) {
@@ -412,12 +431,15 @@ export function parseHorarioPagina(html) {
     // Diário: primeira célula puramente numérica antes do componente.
     const diario = cells.slice(0, idxComp).find((c) => /^\d+$/.test(c)) || "";
 
-    // Professor: célula de texto imediatamente ANTES do horário. Ancorar na
-    // posição evita pegar a coluna de sala ("Bloco C"), que também é texto.
+    // Professor: primeiro o rótulo dentro da própria célula do componente
+    // (layout de 2026/2); só se ele não existir é que caímos na coluna
+    // separada das versões antigas — a de texto imediatamente ANTES do
+    // horário, para não pegar a coluna de sala ("Bloco C").
     const textuais = cells
       .map((c, i) => ({ c, i }))
       .filter(({ c, i }) => i !== idxComp && i !== idxHorario && !pareceHorario(c) && /[A-Za-zÀ-ÿ]{3,}/.test(c));
     const professor =
+      comp.professor ||
       textuais.find(({ i }) => i === idxHorario - 1)?.c ||
       textuais.find(({ i }) => i > idxComp)?.c ||
       "";

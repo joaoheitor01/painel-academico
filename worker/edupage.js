@@ -249,13 +249,29 @@ export function casarHorario(matriculas, grade) {
     const candidatos = porSuap.length ? porSuap : porNome;
 
     let escolhido = null;
+    let professorAmbiguo = false;
     if (candidatos.length === 1) {
       escolhido = candidatos[0];
     } else if (candidatos.length > 1 && m.professor) {
-      escolhido =
-        candidatos.find((c) => c.professores.some((p) => mesmoProfessor(p, m.professor))) || null;
+      const doProfessor = candidatos.filter((c) =>
+        c.professores.some((p) => mesmoProfessor(p, m.professor))
+      );
+      // Duas turmas com O MESMO professor não se desempatam pelo professor.
+      // Pegar a primeira parecia funcionar e escondia o erro: Jorge Monsalve
+      // dá Equações Diferenciais na Computação (terça/sexta à tarde) e na
+      // Civil (sexta à noite) — o painel mostrava a aula da outra turma.
+      // Quem decide aqui é o dia/turno do SUAP; sem ele, a turma (passo 2).
+      escolhido = doProfessor.length === 1 ? doProfessor[0] : null;
+      professorAmbiguo = doProfessor.length > 1;
     }
-    return { m, porNome, semCompativel: porNome.length > 0 && porSuap.length === 0, candidatos, escolhido };
+    return {
+      m,
+      porNome,
+      semCompativel: porNome.length > 0 && porSuap.length === 0,
+      professorAmbiguo,
+      candidatos,
+      escolhido,
+    };
   });
 
   // Passo 2 — a turma do aluno sai do que já resolveu, e UM acerto basta.
@@ -295,7 +311,7 @@ export function casarHorario(matriculas, grade) {
   const naoEncontradas = [];
 
   for (const p of pendentes) {
-    const { m, porNome, semCompativel, escolhido } = p;
+    const { m, porNome, semCompativel, professorAmbiguo, escolhido } = p;
 
     if (!escolhido) {
       naoEncontradas.push({
@@ -306,9 +322,11 @@ export function casarHorario(matriculas, grade) {
             ? "ausente na grade"
             : semCompativel
               ? "nenhuma turma bate com o dia/turno do SUAP"
-              : m.professor
-                ? "várias turmas e nenhuma bate com o professor"
-                : "várias turmas e sem professor para desempatar",
+              : professorAmbiguo
+                ? "o mesmo professor dá esta disciplina em mais de uma turma"
+                : m.professor
+                  ? "várias turmas e nenhuma bate com o professor"
+                  : "várias turmas e sem professor para desempatar",
       });
       continue;
     }

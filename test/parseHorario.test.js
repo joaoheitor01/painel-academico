@@ -1,8 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { parseHorarioPagina, parseCodigoHorario, encontrarId } from "../worker/suap-sync.js";
-import { PAGINA_HORARIO_2026_2, HORARIO_2026_2 } from "./fixtures/horario.js";
+import { parseHorarioPagina, parseCodigoHorario, encontrarId, extrairCodigo } from "../worker/suap-sync.js";
+import {
+  PAGINA_HORARIO_2026_2,
+  HORARIO_2026_2,
+  PAGINA_HORARIO_2026_2_ROTULADA,
+  HORARIO_2026_2_COMPLETO,
+} from "./fixtures/horario.js";
 
 test("parseCodigoHorario() entende <dia><turno><aulas> e múltiplos blocos", () => {
   assert.deepEqual(parseCodigoHorario("2V12"), [{ dia: 2, turno: "V", slots: [1, 2] }]);
@@ -71,4 +76,52 @@ test("linhas sem componente reconhecível não viram entrada", () => {
       <tr><td>total</td><td>sem código aqui</td></tr>
     </table>`;
   assert.deepEqual(parseHorarioPagina(html), []);
+});
+
+// ─── Regressão: o SUAP mudou o layout em 2026/2 ────────────────────────────
+// A página passou a rotular os campos ("Componente: Normal.1654 - …") e o
+// parser, que ancorava o código no INÍCIO da célula, devolveu lista vazia.
+// Sem professor e sem código de horário, o casamento com a grade oficial
+// perdeu os dois desempates — e as disciplinas cursadas fora da turma
+// principal (Equações Diferenciais e Homem, Cultura e Sociedade) caíram no
+// aviso "fora da grade" mesmo estando publicadas.
+
+test("parseHorarioPagina() lê o layout rotulado de 2026/2 (8 disciplinas)", () => {
+  const horario = parseHorarioPagina(PAGINA_HORARIO_2026_2_ROTULADA);
+  assert.equal(horario.length, 8);
+  assert.deepEqual(horario.map(d => d.encId).sort(), [
+    "ENC-22", "ENC-37", "ENC-39", "ENC-40", "ENC-42", "ENC-43", "ENC-55", "ENC-56",
+  ]);
+});
+
+test("layout rotulado: shape idêntico ao esperado pelo Worker", () => {
+  const porId = Object.fromEntries(parseHorarioPagina(PAGINA_HORARIO_2026_2_ROTULADA).map(d => [d.encId, d]));
+  for (const esperado of HORARIO_2026_2_COMPLETO) {
+    assert.deepEqual(porId[esperado.encId], esperado, `divergência em ${esperado.encId}`);
+  }
+});
+
+test("layout rotulado: o professor sai do <dl>, não da coluna de sala", () => {
+  const porId = Object.fromEntries(parseHorarioPagina(PAGINA_HORARIO_2026_2_ROTULADA).map(d => [d.encId, d]));
+  // A linha de Equações Diferenciais é a única com sala preenchida — e a
+  // coluna "Local" vem logo antes do horário, exatamente onde o fallback
+  // posicional procurava o professor.
+  assert.equal(porId["ENC-22"].professor, "Jorge Mauricio Jaramillo Monsalve");
+  assert.equal(porId["ENC-56"].professor, "Sandro Aparecido Lima dos Santos");
+});
+
+test("layout rotulado: o rótulo não entra nem no código nem no nome", () => {
+  const porId = Object.fromEntries(parseHorarioPagina(PAGINA_HORARIO_2026_2_ROTULADA).map(d => [d.encId, d]));
+  assert.equal(porId["ENC-22"].codigo, "Normal.1654");
+  assert.equal(porId["ENC-22"].nome, "Equações Diferenciais");
+  assert.equal(porId["ENC-22"].cargaHoraria, 80);
+});
+
+test("extrairCodigo() acha o código com e sem rótulo à frente", () => {
+  assert.equal(extrairCodigo("Normal.7433 - Análise e Projeto - Graduação"), "Normal.7433");
+  assert.equal(extrairCodigo("Componente: Normal.1654 - Equações Diferenciais - Graduação"), "Normal.1654");
+  // Sala ("B111 - SALA DE AULA") não tem ponto+dígitos: não vira código.
+  assert.equal(extrairCodigo("B111 - SALA DE AULA - BLOCO B"), null);
+  assert.equal(extrairCodigo("sem código aqui"), null);
+  assert.equal(extrairCodigo(""), null);
 });
