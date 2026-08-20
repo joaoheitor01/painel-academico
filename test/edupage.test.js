@@ -255,3 +255,47 @@ test("grade real: uma disciplina resolvida já basta para descobrir a turma", ()
   assert.ok(ids.includes("ENC-39"), "Circuitos II deveria vir pela turma da IA");
   assert.ok(ids.includes("ENC-42"), "Redes deveria vir pela turma da IA");
 });
+
+// ─── Regressão: a disciplina cursada FORA da turma principal ───────────────
+// O aluno é da DCOM 7844.6, mas cursa Homem, Cultura e Sociedade na 7844.9 e
+// Equações Diferenciais junto com a Eng. Civil (dependência). O desempate por
+// turma — que resolve as outras seis — não alcança nenhuma das duas, e as duas
+// dividem nome E professor com uma oferta de outra turma. Só o dia/turno do
+// SUAP separa; sem ele, a resposta certa é reportar, não chutar.
+
+test("turma secundária: HCS é a da 7844.9, não a da Elétrica", () => {
+  const { horario: h } = casarHorario(MATRICULAS_REAIS, CAMPUS);
+  const hcs = h.find(x => x.encId === "ENC-56");
+  assert.match(hcs.turma, /7844\.9/, "a outra oferta do Sandro é da Eng. Elétrica, na sexta");
+  assert.deepEqual(hcs.blocos.map(b => b.dia), [2]);
+});
+
+test("turma secundária: Equações Diferenciais fica na Civil, sexta à noite", () => {
+  const { horario: h } = casarHorario(MATRICULAS_REAIS, CAMPUS);
+  const eq = h.find(x => x.encId === "ENC-99");
+  assert.match(eq.turma, /Eng\. Civil/);
+  const [bloco] = eq.blocos;
+  assert.equal(bloco.dia, 6);
+  assert.equal(bloco.periodos[0][0], 18 * 60 + 50);
+  assert.equal(bloco.periodos.at(-1)[1], 22 * 60 + 25);
+});
+
+test("mesmo professor em duas turmas não desempata: sem dia/turno, reporta", () => {
+  // Era o bug silencioso: candidatos.find() devolvia a PRIMEIRA oferta do
+  // professor, então o painel exibia com confiança a aula da outra turma.
+  const semHorario = MATRICULAS_REAIS.map(m =>
+    m.encId === "ENC-99" ? { ...m, blocos: [] } : m
+  );
+  const { horario: h, naoEncontradas: ne } = casarHorario(semHorario, CAMPUS);
+  assert.equal(h.find(x => x.encId === "ENC-99"), undefined, "não pode chutar a turma errada");
+  assert.equal(ne.length, 1);
+  assert.equal(ne[0].encId, "ENC-99");
+  assert.match(ne[0].motivo, /mesmo professor/);
+  // E as outras sete continuam casando normalmente.
+  assert.equal(h.length, 7);
+});
+
+test("mesmo professor em duas turmas: o dia/turno do SUAP resolve as duas", () => {
+  const { naoEncontradas: ne } = casarHorario(MATRICULAS_REAIS, CAMPUS);
+  assert.deepEqual(ne, []);
+});
